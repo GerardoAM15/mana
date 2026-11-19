@@ -228,6 +228,13 @@ en el panel de APIsPERU. No se almacenan certificados en este repositorio.
 | `FACTURACION_EMPRESA_NOMBRE_COMERCIAL` | Nombre comercial |
 | `FACTURACION_EMPRESA_DIRECCION` | Dirección fiscal |
 | `FACTURACION_EMPRESA_UBIGEO` | Ubigeo fiscal, seis dígitos |
+| `FACTURACION_EMPRESA_DEPARTAMENTO` | Departamento de la dirección fiscal, p. ej. `LIMA` |
+| `FACTURACION_EMPRESA_PROVINCIA` | Provincia de la dirección fiscal |
+| `FACTURACION_EMPRESA_DISTRITO` | Distrito de la dirección fiscal |
+| `FACTURACION_EMPRESA_COD_LOCAL` | Código del establecimiento anexo en SUNAT; predeterminado `0000` (domicilio fiscal) |
+
+Departamento, provincia y distrito se envían solo si tienen valor. Sin ellos SUNAT
+acepta el comprobante con las observaciones 4096 a 4098 (dirección del emisor incompleta).
 
 **BETA es solo para pruebas SUNAT, sin validez tributaria.** El ambiente se cambia
 **manualmente en el panel de APIsPERU** y `app.facturacion.ambiente` debe coincidir:
@@ -278,6 +285,10 @@ Estados: `PENDIENTE` (incluye ambiente no verificable), `ACEPTADO`, `OBSERVADO`
 (aceptado con notas del CDR), `RECHAZADO` (CDR no aceptado, o error SUNAT 2000–3999),
 `ERROR` (API caída o excepción SUNAT sin CDR, códigos 0100–1999) y `ANULADO`. Se
 conservan código, mensaje, hash, XML y CDR base64.
+
+El CDR de APIsPERU no siempre trae el campo `accepted`. Cuando falta, la aceptación se
+decide por el código SUNAT del CDR: `0` o `4000` en adelante es aceptado (`OBSERVADO`
+si el CDR trae notas, `ACEPTADO` si no), y de `2000` a `3999` es `RECHAZADO`.
 Cada cinco minutos se reintentan pendientes y errores, hasta cinco intentos de
 **envío**. Las verificaciones de ambiente bloqueadas no consumen intentos de envío.
 Los bloqueos del comprobante serializan reintentos y anulaciones.
