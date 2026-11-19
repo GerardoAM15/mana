@@ -1,0 +1,26 @@
+<div class="selector-cliente">
+  <span class="titulo">Cliente <small>(opcional)</small></span>
+  @if (cliente(); as c) {
+    <div class="vinculado">
+      <span>{{ c.nombre }} {{ c.apellido }} · DNI {{ c.dni }}</span>
+      <button type="button" class="quitar" [disabled]="deshabilitado()" (click)="quitar()" aria-label="Quitar cliente">✕</button>
+    </div>
+  } @else {
+    <div class="busqueda">
+      <input class="input" inputmode="numeric" maxlength="8" placeholder="DNI" aria-label="DNI del cliente"
+             [value]="dni()" [disabled]="deshabilitado() || buscando()"
+             (input)="escribir($any($event.target).value)" (keydown.enter)="buscar()" />
+      <button type="button" class="btn" [disabled]="deshabilitado() || buscando() || !dni()" (click)="buscar()">
+        {{ buscando() ? 'Buscando...' : 'Buscar' }}
+      </button>
+    </div>
+    @if (aviso()) {
+      <small class="aviso">
+        {{ aviso() }}
+        @if (noRegistrado()) {
+          <a routerLink="/clientes/nuevo">Registrar cliente</a>
+        }
+      </small>
+    }
+  }
+</div>
