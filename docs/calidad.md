@@ -28,8 +28,9 @@ El frontend conserva los filtros y el orden al cambiar de página.
 
 | Capa | Herramienta | Cantidad |
 |---|---|---|
-| Backend | JUnit 5, Mockito, MockRestServiceServer | 257 pruebas (23 de integración con Oracle se omiten si no hay base de datos) |
-| Frontend | Vitest | 19 archivos de prueba |
+| Backend | JUnit 5, Mockito, MockRestServiceServer | 281 pruebas: 253 unitarias y 28 de integración con Oracle (se omiten si no hay base de datos) |
+| Frontend | Vitest | 102 pruebas en 20 archivos |
+| E2E | Playwright | 5 pruebas (ver [Pirámide, SonarQube y ciclo de corrección](pruebas-sonar.md)) |
 
 ```powershell
 cd backend;  .\mvnw.cmd test

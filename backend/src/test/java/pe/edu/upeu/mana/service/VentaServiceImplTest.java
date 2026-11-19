@@ -143,7 +143,7 @@ class VentaServiceImplTest {
         assertDoesNotThrow(() -> service.cobrar(1L, requestPagos()));
 
         assertEquals(EstadoVenta.PAGADA, venta.getEstado());
-        verify(pagos).save(argThat(p -> p.getVentaId().equals(1L) && p.getMonto().equals(new BigDecimal("10.00"))));
+        verify(pagos).save(argThat(p -> p.getVentaId().equals(1L) && p.getMonto().compareTo(new BigDecimal("10.00")) == 0));
     }
 
     @ParameterizedTest

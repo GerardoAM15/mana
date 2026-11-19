@@ -29,7 +29,7 @@
         }
       </tbody>
       @if (stock().length) {
-        <tfoot><tr><th>Total</th><th class="num">{{ totalUnidades() }}</th><th></th></tr></tfoot>
+        <tfoot><tr><th scope="row">Total</th><th scope="col" class="num">{{ totalUnidades() }}</th><th scope="col"></th></tr></tfoot>
       }
     </table>
   }

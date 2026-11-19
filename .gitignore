@@ -1,3 +1,8 @@
 ﻿
 # Sitio generado por MkDocs
 site/
+
+# Credenciales del SonarQube local (no se suben)
+sonar-local.txt
+.scannerwork/
+.sonar/

@@ -8,7 +8,7 @@ import { ConfirmarDialogo } from '../../../../shared/components/confirmar-dialog
 import { EstadoBadge } from '../../../../shared/components/estado-badge/estado-badge';
 import { Comprobante } from '../../models/comprobante.model';
 import { ComprobanteService } from '../../services/comprobante-service';
-import { EMAIL, EstadoComprobanteSolicitud, guardarArchivo, mensajeErrorBlob, nombreTipo } from '../../utils/comprobante';
+import { correoValido as esCorreoValido, EstadoComprobanteSolicitud, guardarArchivo, mensajeErrorBlob, nombreTipo } from '../../utils/comprobante';
 import { DatosComprobante } from '../datos-comprobante/datos-comprobante';
 
 // Comprobante electrónico de una venta o un contrato: estado SUNAT, descargas, reenvío y emisión posterior.
@@ -49,7 +49,7 @@ export class TarjetaComprobante {
   protected readonly correoDestino = signal('');
   protected readonly errorCorreo = signal<string | null>(null);
   protected readonly avisoCorreo = signal<string | null>(null);
-  protected readonly correoValido = computed(() => EMAIL.test(this.correoDestino().trim()));
+  protected readonly correoValido = computed(() => esCorreoValido(this.correoDestino().trim()));
   protected readonly puedeEnviarCorreo = computed(() => {
     const c = this.comprobante();
     return !!c && (c.estado === 'ACEPTADO' || c.estado === 'OBSERVADO') && this.auth.tienePermiso('COMPROBANTE_EMITIR');
