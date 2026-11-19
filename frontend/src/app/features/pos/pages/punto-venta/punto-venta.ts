@@ -18,6 +18,8 @@ import { DatosComprobante } from '../../../comprobantes/components/datos-comprob
 import { TarjetaComprobante } from '../../../comprobantes/components/tarjeta-comprobante/tarjeta-comprobante';
 import { Comprobante } from '../../../comprobantes/models/comprobante.model';
 import { EstadoComprobanteSolicitud } from '../../../comprobantes/utils/comprobante';
+import { Cliente } from '../../../clientes/models/cliente.model';
+import { SelectorCliente } from '../../../ventas/components/selector-cliente/selector-cliente';
 import { TicketVenta } from '../../../ventas/components/ticket-venta/ticket-venta';
 import { Venta } from '../../../ventas/models/venta.model';
 import { VentaService } from '../../../ventas/services/venta-service';
@@ -40,6 +42,7 @@ const SERVICIOS = ['D', 'A', 'C'];
     TicketVenta,
     DatosComprobante,
     TarjetaComprobante,
+    SelectorCliente,
   ],
   templateUrl: './punto-venta.html',
   styleUrl: './punto-venta.css',
@@ -75,6 +78,12 @@ export class PuntoVenta implements OnInit {
   // Pedido.
   protected readonly lineas = signal<LineaPedido[]>([]);
   protected readonly paraLlevar = signal(false);
+  // Cliente registrado al que se vincula la venta (opcional).
+  protected readonly cliente = signal<Cliente | null>(null);
+  protected readonly nombreCliente = computed(() => {
+    const c = this.cliente();
+    return c ? `${c.nombre} ${c.apellido}` : '';
+  });
   protected readonly totales = computed(() => calcularTotales(this.lineas(), this.paraLlevar()));
   protected readonly cobrando = signal(false);
   protected readonly pagos = signal<EstadoPagos | null>(null);
@@ -203,6 +212,7 @@ export class PuntoVenta implements OnInit {
   vaciar(): void {
     this.lineas.set([]);
     this.paraLlevar.set(false);
+    this.cliente.set(null);
     this.errorVenta.set(null);
   }
 
@@ -235,6 +245,7 @@ export class PuntoVenta implements OnInit {
       .registrar({
         servicio: this.servicio(),
         paraLlevar: this.paraLlevar(),
+        ...(this.cliente() ? { clienteId: this.cliente()!.id } : {}),
         lineas: aLineasVenta(this.lineas()),
         ...(conPagos && pagos ? { pagos: pagos.pagos } : {}),
         ...(comprobante ? { comprobante } : {}),

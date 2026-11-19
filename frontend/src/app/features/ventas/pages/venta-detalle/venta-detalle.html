@@ -25,6 +25,11 @@
   @if (venta(); as v) {
     <div class="contenido" [class.con-cobro]="pendiente()">
       <div class="columna">
+        @if (cliente(); as c) {
+          <p class="cliente-vinculado no-imprimir">
+            Cliente: <a [routerLink]="['/clientes', c.id]">{{ c.nombre }} {{ c.apellido }}</a> · DNI {{ c.dni }}
+          </p>
+        }
         <app-ticket-venta [venta]="v" [comprobante]="comprobante()" />
         <app-tarjeta-comprobante [ventaId]="v.id" [total]="v.total" [puedeEmitir]="v.estado === 'PAGADA'"
                                  [version]="versionComprobante()" (cargado)="comprobante.set($event)" />

@@ -133,6 +133,8 @@
           <p class="vacio">Toque un producto para agregarlo.</p>
         }
 
+        <app-selector-cliente [(cliente)]="cliente" [deshabilitado]="guardando()" />
+
         <label class="llevar">
           <input type="checkbox" [checked]="paraLlevar()" (change)="paraLlevar.set($any($event.target).checked)" />
           Para llevar
@@ -189,6 +191,8 @@
       <div class="alerta">{{ errorVenta() }}</div>
     }
     <app-selector-pagos [total]="totales().total" [deshabilitado]="guardando()" (cambio)="pagos.set($event)" />
-    <app-datos-comprobante [total]="totales().total" [deshabilitado]="guardando()" (cambio)="solicitudComprobante.set($event)" />
+    <app-datos-comprobante [total]="totales().total" [deshabilitado]="guardando()"
+                           [documentoInicial]="cliente()?.dni ?? ''" [nombreInicial]="nombreCliente()"
+                           (cambio)="solicitudComprobante.set($event)" />
   </app-confirmar-dialogo>
 }

@@ -14,6 +14,8 @@ import { DatosComprobante } from '../../../comprobantes/components/datos-comprob
 import { TarjetaComprobante } from '../../../comprobantes/components/tarjeta-comprobante/tarjeta-comprobante';
 import { Comprobante } from '../../../comprobantes/models/comprobante.model';
 import { EstadoComprobanteSolicitud } from '../../../comprobantes/utils/comprobante';
+import { Cliente } from '../../../clientes/models/cliente.model';
+import { ClienteService } from '../../../clientes/services/cliente-service';
 import { TicketVenta } from '../../components/ticket-venta/ticket-venta';
 import { Venta } from '../../models/venta.model';
 import { VentaService } from '../../services/venta-service';
@@ -27,11 +29,14 @@ import { VentaService } from '../../services/venta-service';
 export class VentaDetalle implements OnInit {
   private readonly ventaService = inject(VentaService);
   private readonly auth = inject(AuthService);
+  private readonly clientes = inject(ClienteService);
   protected readonly cajaEstado = inject(CajaEstadoService);
   protected readonly catalogos = inject(CatalogoService);
 
   readonly id = input.required<string>();
   protected readonly venta = signal<Venta | null>(null);
+  // Cliente registrado vinculado a la venta, si lo tiene.
+  protected readonly cliente = signal<Cliente | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly pagos = signal<EstadoPagos | null>(null);
   protected readonly cobrando = signal(false);
@@ -53,7 +58,13 @@ export class VentaDetalle implements OnInit {
   ngOnInit(): void {
     this.catalogos.cargar().subscribe({ error: () => undefined });
     this.ventaService.obtener(Number(this.id())).subscribe({
-      next: venta => this.venta.set(venta),
+      next: venta => {
+        this.venta.set(venta);
+        if (venta.clienteId) {
+          // Si no se puede leer el cliente (p. ej. sin permiso), el detalle se muestra igual.
+          this.clientes.obtener(venta.clienteId).subscribe({ next: c => this.cliente.set(c), error: () => undefined });
+        }
+      },
       error: (err: HttpErrorResponse) => this.error.set(mensajeError(err)),
     });
   }
