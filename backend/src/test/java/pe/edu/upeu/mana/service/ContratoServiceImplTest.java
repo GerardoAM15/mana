@@ -201,7 +201,7 @@ class ContratoServiceImplTest {
         assertEquals(10L, captor.getValue().getAnteriorId());
         assertEquals(EstadoContrato.PROGRAMADO, captor.getValue().getEstado());
         assertEquals(EstadoContrato.ACTIVO, anterior.getEstado());
-        verify(detalles).save(argThat(d -> d.getSaldoRaciones() == 5 && d.getRacionesContratadas() == 5 && d.getPrecioRacionPactado().equals(new BigDecimal("3.20"))));
+        verify(detalles).save(argThat(d -> d.getSaldoRaciones() == 5 && d.getRacionesContratadas() == 5 && d.getPrecioRacionPactado().compareTo(new BigDecimal("3.20")) == 0));
         verify(validador).validar(argThat(p -> p.size()==1 && p.getFirst().getMetodo().equals("YAPE") && p.getFirst().getMonto().compareTo(new BigDecimal("16.00"))==0), eq(new BigDecimal("16.00")));
         var renovado = captor.getValue();
         when(contratos.buscarClienteId(11L)).thenReturn(Optional.of(1L));

@@ -1,5 +1,5 @@
 import { Comprobante } from '../models/comprobante.model';
-import { DatosReceptor, estadoSolicitud, textoQr } from './comprobante';
+import { correoValido, DatosReceptor, estadoSolicitud, textoQr } from './comprobante';
 
 const datos = (d: Partial<DatosReceptor>): DatosReceptor => ({ tipo: 'BOLETA', numDoc: '', nombre: '', direccion: '', ...d });
 
@@ -60,5 +60,16 @@ describe('textoQr', () => {
   it('sin documento deja el campo vacío y sin hash no hay QR', () => {
     expect(textoQr({ ...base, receptorTipoDoc: '0', receptorNumDoc: null })).toBe('20471380904|03|B001|7|18.00|118.00|2026-11-10|0||abc=');
     expect(textoQr({ ...base, hash: null })).toBeNull();
+  });
+});
+
+// Regresión del hallazgo typescript:S8786 de SonarQube: mismo resultado que la regex anterior.
+describe('correoValido', () => {
+  it('acepta algo@dominio.ext y rechaza formatos incompletos', () => {
+    expect(correoValido('ana@correo.com')).toBe(true);
+    expect(correoValido('a.b@mana.pe')).toBe(true);
+    for (const malo of ['ana@', '@mana.pe', 'ana@mana', 'ana@.pe', 'ana@mana.', 'dos@@mana.pe', 'con espacio@mana.pe']) {
+      expect(correoValido(malo)).toBe(false);
+    }
   });
 });

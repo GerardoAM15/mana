@@ -44,7 +44,7 @@
     </tbody>
     @if (dias().length) {
       <tfoot>
-        <tr><th>Total</th>@for (s of servicios; track s) { <th class="num">{{ totales().porServicio[s] ?? 0 }}</th> }<th class="num">{{ totales().total }}</th></tr>
+        <tr><th scope="row">Total</th>@for (s of servicios; track s) { <th scope="col" class="num">{{ totales().porServicio[s] ?? 0 }}</th> }<th scope="col" class="num">{{ totales().total }}</th></tr>
       </tfoot>
     }
   </table>

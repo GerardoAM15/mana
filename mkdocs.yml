@@ -26,5 +26,6 @@ nav:
       - Optimización y caché: optimizacion.md
       - Observabilidad: observabilidad.md
       - Paginación, auditoría y pruebas: calidad.md
+      - Pirámide, SonarQube y ciclo de corrección: pruebas-sonar.md
       - Bitácora de estabilización: estabilizacion.md
       - Checklist final: checklist.md

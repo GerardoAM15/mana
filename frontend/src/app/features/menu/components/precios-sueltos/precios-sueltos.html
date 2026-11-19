@@ -20,13 +20,13 @@
             <td>{{ catalogos.nombreServicio(fila.precio.servicio) }}</td>
             <td>{{ catalogos.nombreCategoria(fila.precio.categoria) }}</td>
             @if (gestiona) {
-              <td><input type="number" min="0.01" step="0.01" class="input monto" formControlName="precio" /></td>
-              <td><input type="number" min="0" step="0.01" class="input monto" formControlName="recargoLlevar" /></td>
+              <td><input type="number" min="0.01" step="0.01" class="input monto" aria-label="Precio" formControlName="precio" /></td>
+              <td><input type="number" min="0" step="0.01" class="input monto" aria-label="Recargo para llevar" formControlName="recargoLlevar" /></td>
             } @else {
               <td>{{ fila.precio.precio | currency }}</td>
               <td>{{ fila.precio.recargoLlevar | currency }}</td>
             }
-            <td><input type="checkbox" formControlName="activo" /></td>
+            <td><input type="checkbox" aria-label="Activo" formControlName="activo" /></td>
             @if (gestiona) {
               <td class="acciones">
                 <button type="button" class="btn btn-primary" [disabled]="guardando() === clave(fila.precio)" (click)="guardar(fila)">Guardar</button>

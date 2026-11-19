@@ -21,7 +21,15 @@ export interface EstadoComprobanteSolicitud {
 
 export const DNI = /^\d{8}$/;
 export const RUC = /^(10|15|17|20)\d{9}$/;
-export const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Formato mínimo algo@dominio.ext sin expresión regular: evita el backtracking que SonarQube
+// marcó (typescript:S8786). Mismas reglas que AdministradorBootstrap.correoValido del backend.
+export function correoValido(correo: string): boolean {
+  const arroba = correo.indexOf('@');
+  if (arroba <= 0 || arroba !== correo.lastIndexOf('@') || /\s/.test(correo)) return false;
+  const dominio = correo.slice(arroba + 1);
+  const punto = dominio.indexOf('.', 1);
+  return punto > 0 && punto < dominio.length - 1;
+}
 
 // Mismas reglas que ValidadorReceptorComprobante del backend.
 export function estadoSolicitud(d: DatosReceptor, total: number, umbralBoleta: number): EstadoComprobanteSolicitud {
@@ -33,7 +41,7 @@ export function estadoSolicitud(d: DatosReceptor, total: number, umbralBoleta: n
   if (d.tipo === 'TICKET') return { valido: true, solicitud: null, error: null };
 
   const email = (d.email ?? '').trim().toLowerCase();
-  if (email && (!EMAIL.test(email) || email.length > 120)) return invalido('Ingrese un correo válido o déjelo vacío.');
+  if (email && (!correoValido(email) || email.length > 120)) return invalido('Ingrese un correo válido o déjelo vacío.');
   const extra = { ...(direccion ? { receptorDireccion: direccion } : {}), ...(email ? { receptorEmail: email } : {}) };
 
   if (d.tipo === 'FACTURA') {

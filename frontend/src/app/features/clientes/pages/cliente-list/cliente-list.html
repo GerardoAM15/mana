@@ -7,7 +7,7 @@
     <a *siPermiso="'CLIENTE_ESCRIBIR'" routerLink="nuevo" class="btn btn-primary">+ Nuevo cliente</a>
   </header>
 
-  <input class="input buscador" placeholder="Buscar por DNI, nombre o apellido..." [formControl]="busqueda" />
+  <input class="input buscador" aria-label="Buscar clientes" placeholder="Buscar por DNI, nombre o apellido..." [formControl]="busqueda" />
 
   @if (error()) {
     <div class="alerta">{{ error() }}</div>

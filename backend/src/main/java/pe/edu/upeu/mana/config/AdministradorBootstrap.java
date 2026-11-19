@@ -58,7 +58,7 @@ public class AdministradorBootstrap implements ApplicationRunner {
             log.warn("Primer dueño no creado: configure MANA_ADMIN_EMAIL, MANA_ADMIN_PASSWORD y MANA_ADMIN_DNI");
             return;
         }
-        if (!dni.matches("[0-9]{8}") || password.length() < 8 || password.length() > 72 || !email.matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+"))
+        if (!dni.matches("[0-9]{8}") || password.length() < 8 || password.length() > 72 || !correoValido(email))
             throw new IllegalStateException("Configuración del primer dueño inválida");
         var local = locales.findAll().stream().filter(l -> Boolean.TRUE.equals(l.getActivo())).min(Comparator.comparing(Local::getId)).orElse(null);
         if (local == null) {
@@ -86,5 +86,16 @@ public class AdministradorBootstrap implements ApplicationRunner {
         u.setActivo(true);
         usuarios.saveAndFlush(u);
         log.info("Primer dueño creado");
+    }
+
+    // Formato mínimo de correo (algo@dominio.ext) sin expresión regular: evita el backtracking
+    // que SonarQube marcó (java:S8786) y que podría ralentizarse con entradas maliciosas.
+    static boolean correoValido(String correo) {
+        int arroba = correo.indexOf('@');
+        if (arroba <= 0 || arroba != correo.lastIndexOf('@') || correo.chars().anyMatch(Character::isWhitespace))
+            return false;
+        String dominio = correo.substring(arroba + 1);
+        int punto = dominio.indexOf('.', 1);
+        return punto > 0 && punto < dominio.length() - 1;
     }
 }

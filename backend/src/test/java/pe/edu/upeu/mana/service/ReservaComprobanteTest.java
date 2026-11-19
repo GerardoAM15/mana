@@ -96,7 +96,7 @@ class ReservaComprobanteTest {
             when(comprobantes.saveAndFlush(any())).thenAnswer(a -> { Comprobante c=a.getArgument(0); c.setId(99L); return c; });
         }
         reserva.anularVenta(7L); assertEquals(EstadoComprobante.ANULADO,original.getEstado());
-        if(nota) verify(comprobantes).saveAndFlush(argThat(c -> c.getTipo()==TipoComprobante.NOTA_CREDITO && c.getReferenciaId().equals(1L) && c.getVentaId()==null && c.getTotal().equals(original.getTotal()) && c.getMotivoCodigo().equals("01")));
+        if(nota) verify(comprobantes).saveAndFlush(argThat(c -> c.getTipo()==TipoComprobante.NOTA_CREDITO && c.getReferenciaId().equals(1L) && c.getVentaId()==null && c.getTotal().compareTo(original.getTotal()) == 0 && c.getMotivoCodigo().equals("01")));
         else { verify(comprobantes,never()).saveAndFlush(any()); verifyNoInteractions(correlativos,eventos); }
     }
     @Test void formatoNumero() { assertEquals("B001-00000001",new CorrelativoComprobante.Numero(1L,"B001",1).formateado()); }

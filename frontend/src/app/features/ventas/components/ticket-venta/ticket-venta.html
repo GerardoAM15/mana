@@ -26,6 +26,8 @@
   }
 
   <table>
+    <!-- Encabezado solo para lectores de pantalla: el ticket impreso no lo muestra. -->
+    <thead class="solo-lector"><tr><th scope="col">Detalle</th><th scope="col">Importe</th></tr></thead>
     <tbody>
       @for (l of v.lineas; track l.id) {
         <tr>
