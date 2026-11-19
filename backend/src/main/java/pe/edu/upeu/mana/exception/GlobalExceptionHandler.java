@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import pe.edu.upeu.mana.exception.dto.ErrorResponseDTO;
 
 @RestControllerAdvice
@@ -52,6 +54,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     ResponseEntity<ErrorResponseDTO> metodoNoPermitido(HttpRequestMethodNotSupportedException ex, HttpServletRequest req) {
         return error(HttpStatus.METHOD_NOT_ALLOWED, "Metodo HTTP no permitido", req);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    ResponseEntity<ErrorResponseDTO> contenidoNoSoportado(HttpMediaTypeNotSupportedException ex, HttpServletRequest req) {
+        return error(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Tipo de contenido no soportado; utilice application/json", req);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    ResponseEntity<ErrorResponseDTO> respuestaNoDisponible(HttpMediaTypeNotAcceptableException ex, HttpServletRequest req) {
+        return error(HttpStatus.NOT_ACCEPTABLE, "Formato de respuesta no disponible; utilice application/json", req);
     }
 
     @ExceptionHandler(ReglaNegocioException.class)
@@ -107,7 +119,7 @@ public class GlobalExceptionHandler {
     }
 
     private ResponseEntity<ErrorResponseDTO> error(HttpStatus status, String mensaje, HttpServletRequest req) {
-        return ResponseEntity.status(status).body(new ErrorResponseDTO(ahora(), status.value(), status.getReasonPhrase(), mensaje, req.getRequestURI(), null));
+        return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(new ErrorResponseDTO(ahora(), status.value(), status.getReasonPhrase(), mensaje, req.getRequestURI(), null));
     }
 
     private LocalDateTime ahora() {
