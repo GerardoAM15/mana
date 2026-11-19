@@ -48,9 +48,9 @@
         <tfoot>
           <tr>
             <th>Total</th>
-            <th class="num">{{ totalEsperado() | currency }}</th>
-            <th class="num">{{ totalContado() | currency }}</th>
-            <th class="num diferencia" [class.cuadra]="totalDiferencia() === 0" [class.descuadre]="totalDiferencia() !== 0">
+            <th scope="col" class="num">{{ totalEsperado() | currency }}</th>
+            <th scope="col" class="num">{{ totalContado() | currency }}</th>
+            <th scope="col" class="num diferencia" [class.cuadra]="totalDiferencia() === 0" [class.descuadre]="totalDiferencia() !== 0">
               {{ totalDiferencia() | currency }}
             </th>
           </tr>

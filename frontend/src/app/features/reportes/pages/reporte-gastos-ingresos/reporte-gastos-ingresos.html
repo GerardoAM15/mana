@@ -42,7 +42,7 @@
       }
     </tbody>
     @if (datos().length) {
-      <tfoot><tr><th>Total</th><th class="num">{{ totales().ingresos | currency }}</th><th class="num">{{ totales().gastos | currency }}</th><th class="num">{{ totales().diferencia | currency }}</th></tr></tfoot>
+      <tfoot><tr><th scope="row">Total</th><th scope="col" class="num">{{ totales().ingresos | currency }}</th><th scope="col" class="num">{{ totales().gastos | currency }}</th><th scope="col" class="num">{{ totales().diferencia | currency }}</th></tr></tfoot>
     }
   </table>
   <p class="nota">Solo se cuentan los gastos activos; los desactivados no suman.</p>

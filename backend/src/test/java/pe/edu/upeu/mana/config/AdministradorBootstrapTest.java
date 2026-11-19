@@ -50,6 +50,19 @@ class AdministradorBootstrapTest {
         assertEquals(RolUsuario.ADMINISTRADOR,anterior.getRol());verify(usuarios,never()).saveAndFlush(any());verifyNoInteractions(empleados,encoder);
     }
 
+    // Regresión del hallazgo java:S8786 de SonarQube: el validador sin regex acepta y rechaza lo mismo que antes.
+    @Test void validaElFormatoDelCorreoSinExpresionRegular() {
+        assertTrue(AdministradorBootstrap.correoValido("inicial@example.invalid"));
+        assertTrue(AdministradorBootstrap.correoValido("a.b@mana.pe"));
+        assertFalse(AdministradorBootstrap.correoValido("sinarroba.pe"));
+        assertFalse(AdministradorBootstrap.correoValido("@mana.pe"));
+        assertFalse(AdministradorBootstrap.correoValido("dos@@mana.pe"));
+        assertFalse(AdministradorBootstrap.correoValido("con espacio@mana.pe"));
+        assertFalse(AdministradorBootstrap.correoValido("usuario@mana"));
+        assertFalse(AdministradorBootstrap.correoValido("usuario@.pe"));
+        assertFalse(AdministradorBootstrap.correoValido("usuario@mana."));
+    }
+
     private void bloquear(){when(roles.buscarParaActualizar("DUENO")).thenReturn(Optional.of(new Rol()));}
     private void local(){var l=new Local();l.setId(1L);when(locales.findAll()).thenReturn(List.of(l));}
     private AdministradorBootstrap bootstrap(String clave){return new AdministradorBootstrap(usuarios,empleados,personas,locales,encoder,roles,"inicial@example.invalid",clave,"87654321");}

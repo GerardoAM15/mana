@@ -58,9 +58,9 @@
         <tfoot>
           <tr>
             <th colspan="2">Total</th>
-            <th class="num">{{ (r.caja.montoEsperado ?? r.montoEsperado) | currency }}</th>
-            <th class="num">{{ r.caja.montoContado !== null ? (r.caja.montoContado | currency) : '-' }}</th>
-            <th class="num">{{ r.caja.diferencia !== null ? (r.caja.diferencia | currency) : '-' }}</th>
+            <th scope="col" class="num">{{ (r.caja.montoEsperado ?? r.montoEsperado) | currency }}</th>
+            <th scope="col" class="num">{{ r.caja.montoContado !== null ? (r.caja.montoContado | currency) : '-' }}</th>
+            <th scope="col" class="num">{{ r.caja.diferencia !== null ? (r.caja.diferencia | currency) : '-' }}</th>
           </tr>
         </tfoot>
       </table>

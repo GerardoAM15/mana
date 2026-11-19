@@ -48,3 +48,8 @@ referencia/
 # Archivos de trabajo locales
 CLAUDE.md
 docs/prompt-*.md
+
+# Resultados de Playwright (E2E) y del análisis de SonarQube
+/test-results
+/playwright-report
+/.scannerwork

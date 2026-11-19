@@ -17,7 +17,7 @@
           <td>{{ catalogos.nombreServicio(fila.servicio) }}</td>
           <td>
             @if (gestiona) {
-              <input type="number" min="0.01" step="0.01" class="input monto" formControlName="precio" />
+              <input type="number" min="0.01" step="0.01" class="input monto" aria-label="Precio" formControlName="precio" />
               @if (fila.form.controls.precio.touched && fila.form.controls.precio.invalid) {
                 <small class="error">Mayor a 0.</small>
               }
@@ -25,7 +25,7 @@
               {{ fila.tarifa ? (fila.tarifa.precio | currency) : 'Sin tarifa' }}
             }
           </td>
-          <td><input type="checkbox" formControlName="activo" /></td>
+          <td><input type="checkbox" aria-label="Activo" formControlName="activo" /></td>
           @if (gestiona) {
             <td>
               <button type="button" class="btn btn-primary" [disabled]="guardando() === fila.servicio" (click)="guardar(fila)">

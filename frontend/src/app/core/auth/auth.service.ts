@@ -65,7 +65,7 @@ export class AuthService {
     this.sesion.set(null);
     this.catalogos.limpiar();
     this.cajaEstado.limpiar();
-    this.router.navigate(['/login'], { queryParams: returnUrl ? { returnUrl } : {} });
+    void this.router.navigate(['/login'], { queryParams: returnUrl ? { returnUrl } : {} });
   }
 
   // Se lee de sessionStorage en cada petición: si alguien altera el token, el backend responde 401.

@@ -7,7 +7,7 @@
     <a routerLink="nuevo" class="btn btn-primary">+ Nuevo usuario</a>
   </header>
 
-  <input class="input buscador" placeholder="Buscar por nombre, correo o DNI..." [value]="texto()" (input)="texto.set($any($event.target).value)" />
+  <input class="input buscador" aria-label="Buscar usuarios" placeholder="Buscar por nombre, correo o DNI..." [value]="texto()" (input)="texto.set($any($event.target).value)" />
 
   @if (mensaje()) {
     <div class="alerta exito">{{ mensaje() }}</div>

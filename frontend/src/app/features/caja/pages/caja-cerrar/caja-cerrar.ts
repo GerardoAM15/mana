@@ -113,7 +113,7 @@ export class CajaCerrar implements OnInit {
       .subscribe({
         next: caja => {
           this.cajaEstado.establecer(null);
-          this.router.navigate(['/caja', caja.id]);
+          void this.router.navigate(['/caja', caja.id]);
         },
         error: (err: HttpErrorResponse) => {
           this.guardando.set(false);

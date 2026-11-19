@@ -40,7 +40,7 @@
       }
     </tbody>
     @if (datos().length) {
-      <tfoot><tr><th>Total</th><th class="num">{{ totales().contratos | currency }}</th><th class="num">{{ totales().ventas | currency }}</th><th class="num">{{ totales().total | currency }}</th></tr></tfoot>
+      <tfoot><tr><th scope="row">Total</th><th scope="col" class="num">{{ totales().contratos | currency }}</th><th scope="col" class="num">{{ totales().ventas | currency }}</th><th scope="col" class="num">{{ totales().total | currency }}</th></tr></tfoot>
     }
   </table>
   <p class="nota">Pensiones = cobros de contratos − devoluciones + recargos para llevar de consumos. Ventas = ventas pagadas − devoluciones.</p>

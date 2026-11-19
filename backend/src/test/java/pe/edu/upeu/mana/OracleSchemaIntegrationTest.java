@@ -46,9 +46,15 @@ class OracleSchemaIntegrationTest {
     @Value("${app.admin.password}")
     String clave;
 
+    @Autowired
+    jakarta.persistence.EntityManagerFactory emf;
+
     @Test
     void arrancaValidandoElEsquemaReal() {
-        // La creación del contexto exige validar todas las tablas con Oracle.
+        // La creación del contexto exige validar todas las tablas con Oracle (ddl-auto=validate);
+        // además se comprueba que Hibernate registró las entidades contra ese esquema.
+        assertTrue(emf.isOpen());
+        assertTrue(emf.getMetamodel().getEntities().size() > 30);
     }
 
     @Test

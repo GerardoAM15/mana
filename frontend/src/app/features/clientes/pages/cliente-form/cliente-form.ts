@@ -86,9 +86,9 @@ export class ClienteForm implements OnInit {
     peticion.subscribe({
       next: cliente => {
         if (this.retorno() === 'contrato') {
-          this.router.navigate(['/contratos/nuevo'], { queryParams: { clienteId: cliente.id } });
+          void this.router.navigate(['/contratos/nuevo'], { queryParams: { clienteId: cliente.id } });
         } else {
-          this.router.navigate(['/clientes', cliente.id]);
+          void this.router.navigate(['/clientes', cliente.id]);
         }
       },
       error: (err: HttpErrorResponse) => {

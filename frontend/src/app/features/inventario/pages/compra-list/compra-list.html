@@ -41,7 +41,7 @@
         }
       </tbody>
       @if (compras().length) {
-        <tfoot><tr><th colspan="5">Total del periodo</th><th class="num">{{ total() | currency }}</th><th></th></tr></tfoot>
+        <tfoot><tr><th scope="row" colspan="5">Total del periodo</th><th scope="col" class="num">{{ total() | currency }}</th><th scope="col"></th></tr></tfoot>
       }
     </table>
   }

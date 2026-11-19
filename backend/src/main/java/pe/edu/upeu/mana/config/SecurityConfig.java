@@ -22,6 +22,10 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    // CSRF desactivado a propósito (revisado en SonarQube, regla java:S4502): la API es STATELESS y
+    // autentica solo con el JWT de la cabecera Authorization; no usa cookies ni sesión, así que el
+    // navegador no envía credenciales automáticamente y un ataque CSRF no tiene con qué operar.
+    @SuppressWarnings("java:S4502")
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtService jwt, UsuarioDetailsService detalles, UsuarioRepository usuarios, RestAuthenticationEntryPoint entry, RestAccessDeniedHandler denied, @Qualifier("corsConfigurationSource") CorsConfigurationSource cors) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)

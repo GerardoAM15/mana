@@ -9,14 +9,14 @@
   <app-menu-tabs />
 
   <div class="filtros">
-    <input class="input" placeholder="Buscar por nombre..." [value]="texto()" (input)="texto.set($any($event.target).value)" />
-    <select class="input" [value]="categoria()" (change)="categoria.set($any($event.target).value)">
+    <input class="input" aria-label="Buscar platos" placeholder="Buscar por nombre..." [value]="texto()" (input)="texto.set($any($event.target).value)" />
+    <select class="input" aria-label="Filtrar por categoría" [value]="categoria()" (change)="categoria.set($any($event.target).value)">
       <option value="">Todas las categorías</option>
       @for (c of catalogos.categorias(); track c.codigo) {
         <option [value]="c.codigo">{{ c.nombre }}</option>
       }
     </select>
-    <select class="input" [value]="activo()" (change)="activo.set($any($event.target).value)">
+    <select class="input" aria-label="Filtrar por estado" [value]="activo()" (change)="activo.set($any($event.target).value)">
       <option value="activos">Activos</option>
       <option value="inactivos">Inactivos</option>
       <option value="todos">Todos</option>
