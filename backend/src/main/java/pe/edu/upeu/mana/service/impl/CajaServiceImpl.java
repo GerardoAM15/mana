@@ -32,6 +32,8 @@ import pe.edu.upeu.mana.util.PaginacionUtil;
 @Service
 public class CajaServiceImpl implements CajaService {
 
+    private final pe.edu.upeu.mana.service.service.AuditoriaService auditoria;
+
     private static final Logger log = LoggerFactory.getLogger(CajaServiceImpl.class);
 
     private static final BigDecimal CERO = new BigDecimal("0.00");
@@ -54,7 +56,7 @@ public class CajaServiceImpl implements CajaService {
 
     private final Clock clock;
 
-    public CajaServiceImpl(SesionCajaRepository cajas, UsuarioRepository usuarios, VentaRepository ventas, DetalleCierreCajaRepository detalles, MetodoPagoRepository metodos, ContextoLocalService contexto, CajaMapper mapper, Clock clock) {
+    public CajaServiceImpl(SesionCajaRepository cajas, UsuarioRepository usuarios, VentaRepository ventas, DetalleCierreCajaRepository detalles, MetodoPagoRepository metodos, ContextoLocalService contexto, CajaMapper mapper, Clock clock, pe.edu.upeu.mana.service.service.AuditoriaService auditoria) {
         this.cajas = cajas;
         this.usuarios = usuarios;
         this.ventas = ventas;
@@ -63,6 +65,7 @@ public class CajaServiceImpl implements CajaService {
         this.contexto = contexto;
         this.mapper = mapper;
         this.clock = clock;
+        this.auditoria = auditoria;
     }
 
     @Transactional
@@ -166,6 +169,9 @@ public class CajaServiceImpl implements CajaService {
             caja.setObservacion(r.getObservacion());
             caja.setCierre(LocalDateTime.now(clock));
             caja.setClaveAbierta(null);
+            auditoria.registrar(pe.edu.upeu.mana.enums.AccionAuditoria.CERRAR_CAJA, "SesionCaja", caja.getId(), caja.getLocalId(),
+                    "Caja " + caja.getId() + " | estado: ABIERTA -> CERRADA | esperado: " + caja.getMontoEsperado() + " | contado: " + totalContado
+                            + " | diferencia: " + caja.getDiferencia() + (r.getObservacion() == null || r.getObservacion().isBlank() ? "" : " | observación: " + r.getObservacion()));
             cajas.flush();
             log.info("Caja cerrada | caja={} | usuario={} | esperado={} | contado={} | diferencia={}", id, usuario.getCorreo(), caja.getMontoEsperado(), totalContado, caja.getDiferencia());
             return mapper.toResponse(caja);
