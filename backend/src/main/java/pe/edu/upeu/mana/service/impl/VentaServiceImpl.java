@@ -36,6 +36,8 @@ import pe.edu.upeu.mana.util.PaginacionUtil;
 @Service
 public class VentaServiceImpl implements VentaService {
 
+    private final pe.edu.upeu.mana.service.service.AuditoriaService auditoria;
+
     private static final Logger log = LoggerFactory.getLogger(VentaServiceImpl.class);
 
     private static final java.util.Set<String> CAMPOS_ORDENABLES = java.util.Set.of("id", "numero", "fecha", "total", "estado");
@@ -94,7 +96,7 @@ public class VentaServiceImpl implements VentaService {
 
     private final ValidadorAtencion atencion;
 
-    public VentaServiceImpl(VentaRepository ventas, DetalleOrdenRepository detalles, DetalleComboPlatoRepository combos, PagoVentaRepository pagos, DevolucionVentaRepository devoluciones, ClienteRepository clientes, ServicioRepository servicios, PlatoRepository platos, BebidaRepository bebidas, ReglaCobroRepository reglas, ComponenteReglaRepository componentes, PrecioSueltoRepository precios, ProgramacionMenuRepository programaciones, MenuPlatoRepository menuPlatos, ContextoLocalService contexto, CajaService cajas, StockService stocks, CorrelativoService correlativos, ValidadorMenu validadorMenu, ValidadorPagos validadorPagos, CalculadoraTotalesVenta calculadora, VentaMapper mapper, ReglaCobroMapper reglaMapper, MenuService menus, Clock clock, ValidadorAtencion atencion, ReservaComprobanteService comprobantes) {
+    public VentaServiceImpl(VentaRepository ventas, DetalleOrdenRepository detalles, DetalleComboPlatoRepository combos, PagoVentaRepository pagos, DevolucionVentaRepository devoluciones, ClienteRepository clientes, ServicioRepository servicios, PlatoRepository platos, BebidaRepository bebidas, ReglaCobroRepository reglas, ComponenteReglaRepository componentes, PrecioSueltoRepository precios, ProgramacionMenuRepository programaciones, MenuPlatoRepository menuPlatos, ContextoLocalService contexto, CajaService cajas, StockService stocks, CorrelativoService correlativos, ValidadorMenu validadorMenu, ValidadorPagos validadorPagos, CalculadoraTotalesVenta calculadora, VentaMapper mapper, ReglaCobroMapper reglaMapper, MenuService menus, Clock clock, ValidadorAtencion atencion, ReservaComprobanteService comprobantes, pe.edu.upeu.mana.service.service.AuditoriaService auditoria) {
         this.ventas = ventas;
         this.detalles = detalles;
         this.combos = combos;
@@ -122,6 +124,7 @@ public class VentaServiceImpl implements VentaService {
         this.menus = menus;
         this.clock = clock;
         this.comprobantes = comprobantes;
+        this.auditoria = auditoria;
     }
 
     @Transactional
@@ -277,6 +280,7 @@ public class VentaServiceImpl implements VentaService {
             contexto.validarLocal(v.getLocalId());
             if (v.getEstado() == EstadoVenta.ANULADA)
                 throw new ReglaNegocioException("La venta ya está anulada");
+            var estadoAnterior = v.getEstado();
             var cobros = pagos.findByVentaIdOrderById(id);
             if (v.getEstado() == EstadoVenta.PAGADA) {
                 var montos = new TreeMap<String, BigDecimal>();
@@ -299,6 +303,8 @@ public class VentaServiceImpl implements VentaService {
             v.setEstado(EstadoVenta.ANULADA);
             v.setAnuladaEn(LocalDateTime.now(clock));
             v.setMotivoAnulacion(motivo);
+            auditoria.registrar(pe.edu.upeu.mana.enums.AccionAuditoria.ANULAR_VENTA, "Venta", v.getId(), v.getLocalId(),
+                    "Venta " + v.getNumero() + " | estado: " + estadoAnterior + " -> ANULADA | total: " + v.getTotal() + " | motivo: " + motivo);
             ventas.flush();
             log.info("Venta anulada | numero={} | usuario={} | total={}", v.getNumero(), contexto.usuario().getCorreo(), v.getTotal());
             return respuesta(v);

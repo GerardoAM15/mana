@@ -30,7 +30,13 @@ class CajaServiceImplTest {
     void supervisorPuedeCerrarLaCajaDeOtroUsuario(RolUsuario rol) {
         usuario(rol,3L);
         assertNotNull(service.cerrar(10L,new CerrarCajaRequestDTO(List.of(),null)).getCierre());
+        org.mockito.Mockito.verify(auditoria).registrar(org.mockito.ArgumentMatchers.eq(pe.edu.upeu.mana.enums.AccionAuditoria.CERRAR_CAJA),
+                org.mockito.ArgumentMatchers.eq("SesionCaja"), org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.contains("ABIERTA -> CERRADA"));
     }
+
+    @Mock
+    pe.edu.upeu.mana.service.service.AuditoriaService auditoria;
 
     @Mock
     SesionCajaRepository cajas;
@@ -58,7 +64,7 @@ class CajaServiceImplTest {
 
     @BeforeEach
     void preparar() {
-        service = new CajaServiceImpl(cajas, usuarios, ventas, detalles, metodos, contexto, new CajaMapper(), clock);
+        service = new CajaServiceImpl(cajas, usuarios, ventas, detalles, metodos, contexto, new CajaMapper(), clock, auditoria);
         caja = new SesionCaja();
         caja.setId(10L);
         caja.setUsuarioId(2L);

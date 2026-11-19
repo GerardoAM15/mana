@@ -157,7 +157,11 @@ class VentaServiceImplTest {
 
         assertEquals(EstadoVenta.ANULADA, venta.getEstado());
         assertNotNull(venta.getAnuladaEn());
+        verify(auditoria).registrar(eq(pe.edu.upeu.mana.enums.AccionAuditoria.ANULAR_VENTA), eq("Venta"), any(), any(),
+                argThat(d -> d.contains("PENDIENTE -> ANULADA") && d.contains("Anulación de prueba")));
     }
+
+    @Mock pe.edu.upeu.mana.service.service.AuditoriaService auditoria;
 
     private void cajaYUsuario(RolUsuario rol, Long usuarioId) {
         var caja = new SesionCaja();

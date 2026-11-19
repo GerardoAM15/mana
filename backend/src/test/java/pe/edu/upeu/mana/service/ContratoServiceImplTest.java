@@ -112,8 +112,10 @@ class ContratoServiceImplTest {
     }
 
     private ContratoServiceImpl crearServicio(Clock reloj) {
-        return new ContratoServiceImpl(contratos, clientes, planes, planServicios, servicios, dias, cierres, tarifas, detalles, pagos, consumos, contexto, cajas, new CalculadoraRaciones(), correlativos, validador, new EstadoContratoActual(reloj), consultaConsumos, mapper, reloj, mock(pe.edu.upeu.mana.service.service.ReservaComprobanteService.class));
+        return new ContratoServiceImpl(contratos, clientes, planes, planServicios, servicios, dias, cierres, tarifas, detalles, pagos, consumos, contexto, cajas, new CalculadoraRaciones(), correlativos, validador, new EstadoContratoActual(reloj), consultaConsumos, mapper, reloj, mock(pe.edu.upeu.mana.service.service.ReservaComprobanteService.class), auditoria);
     }
+
+    final pe.edu.upeu.mana.service.service.AuditoriaService auditoria = mock(pe.edu.upeu.mana.service.service.AuditoriaService.class);
 
     private void crearBase() {
         when(cajas.buscarActualParaActualizar()).thenReturn(caja);

@@ -20,7 +20,7 @@ Los casos de uso siguen la numeración de la Matriz de Requerimientos v8.
 
 ## Ejecutar
 
-La raíz Maven es esta carpeta, `mana_backend/`, dentro del directorio abierto en IntelliJ. El esquema debe existir previamente y corresponder a [docs/mana-hibrido-v4.sql](docs/mana-hibrido-v4.sql) más [docs/mana-v5-comprobantes.sql](docs/mana-v5-comprobantes.sql) y [docs/mana-v6-comprobante-correo.sql](docs/mana-v6-comprobante-correo.sql). La aplicación **solo valida** el esquema: no ejecuta ese script, ALTER, migraciones ni DDL. Flyway está deshabilitado y no tiene dependencia.
+La raíz Maven es esta carpeta, `mana_backend/`, dentro del directorio abierto en IntelliJ. El esquema debe existir previamente y corresponder a [docs/mana-hibrido-v4.sql](docs/mana-hibrido-v4.sql) más [docs/mana-v5-comprobantes.sql](docs/mana-v5-comprobantes.sql), [docs/mana-v6-comprobante-correo.sql](docs/mana-v6-comprobante-correo.sql) y [docs/mana-v7-auditoria.sql](docs/mana-v7-auditoria.sql). La aplicación **solo valida** el esquema: no ejecuta ese script, ALTER, migraciones ni DDL. Flyway está deshabilitado y no tiene dependencia.
 
 ```powershell
 # Desde esta carpeta, con JDK 21 configurado
@@ -307,6 +307,23 @@ Casos especiales:
   el PDF y el XML firmado con el SMTP de `spring.mail` (el mismo de la recuperación de contraseña).
   También se puede enviar o reenviar con `POST /comprobantes/{id}/correo` (`{ "email": "..." }`, opcional).
   Requiere `docs/mana-v6-comprobante-correo.sql` (columnas `receptor_email` y `correo_enviado_en`).
+
+## Historial de auditoría
+
+Las operaciones críticas quedan registradas en la tabla `auditoria_eventos`
+([docs/mana-v7-auditoria.sql](docs/mana-v7-auditoria.sql)) dentro de la misma transacción: si la operación
+falla, tampoco queda el registro.
+
+| Acción | Se registra al | Detalle guardado |
+|---|---|---|
+| `ANULAR_VENTA` | Anular una venta | Número, estado anterior → ANULADA, total y motivo |
+| `ANULAR_CONTRATO` | Anular un contrato | Número, estado anterior → ANULADO, devolución y motivo |
+| `ANULAR_CONSUMO` | Anular un consumo | Contrato, saldo de raciones antes → después, recargo devuelto y motivo |
+| `CERRAR_CAJA` | Cerrar una caja | ABIERTA → CERRADA, esperado, contado, diferencia y observación |
+
+Cada registro guarda además el usuario, la fecha, el local y el `requestId` de la petición.
+Consulta paginada: `GET /api/v1/auditoria?accion=&usuario=&desde=&hasta=&pagina=&tamanio=`, con permiso
+`AUDITORIA_VER` (Dueño y Administrador); el Administrador solo ve su local.
 
 Al anular una operación con comprobante aceptado u observado se reserva una nota
 de crédito con motivo `01`, `Anulación de la operación`, mismos datos y montos,

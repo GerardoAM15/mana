@@ -23,6 +23,8 @@ import pe.edu.upeu.mana.dto.consumo.PlatoCantidadRequestDTO;
 @Service
 public class ConsumoServiceImpl implements ConsumoService {
 
+    private final pe.edu.upeu.mana.service.service.AuditoriaService auditoria;
+
     private static final Logger log = LoggerFactory.getLogger(ConsumoServiceImpl.class);
 
     private static final java.util.Set<String> CAMPOS_ORDENABLES = java.util.Set.of("id", "fecha", "registradoEn", "anulado");
@@ -57,7 +59,7 @@ public class ConsumoServiceImpl implements ConsumoService {
 
     private final Clock clock;
 
-    public ConsumoServiceImpl(ContratoRepository contratos, DetalleContratoRepository detallesContrato, ConsumoRepository consumos, DetalleConsumoRepository detallesConsumo, PlatoRepository platos, ValidadorAtencion atencion, ServicioRepository servicios, MetodoPagoRepository metodos, ContextoLocalService contexto, CajaService cajas, ValidadorMenu menus, EstadoContratoActual estados, ConsumoMapper mapper, Clock clock) {
+    public ConsumoServiceImpl(ContratoRepository contratos, DetalleContratoRepository detallesContrato, ConsumoRepository consumos, DetalleConsumoRepository detallesConsumo, PlatoRepository platos, ValidadorAtencion atencion, ServicioRepository servicios, MetodoPagoRepository metodos, ContextoLocalService contexto, CajaService cajas, ValidadorMenu menus, EstadoContratoActual estados, ConsumoMapper mapper, Clock clock, pe.edu.upeu.mana.service.service.AuditoriaService auditoria) {
         this.contratos = contratos;
         this.detallesContrato = detallesContrato;
         this.consumos = consumos;
@@ -72,6 +74,7 @@ public class ConsumoServiceImpl implements ConsumoService {
         this.estados = estados;
         this.mapper = mapper;
         this.clock = clock;
+        this.auditoria = auditoria;
     }
 
     @Transactional(readOnly = true)
@@ -186,7 +189,11 @@ public class ConsumoServiceImpl implements ConsumoService {
             c.setAnuladoEn(LocalDateTime.now(clock));
             c.setMotivoAnulacion(motivo);
             c.setClaveDiaria(null);
-            detalle.setSaldoRaciones(detalle.getSaldoRaciones() + 1);
+            var saldoAnterior = detalle.getSaldoRaciones();
+            detalle.setSaldoRaciones(saldoAnterior + 1);
+            auditoria.registrar(pe.edu.upeu.mana.enums.AccionAuditoria.ANULAR_CONSUMO, "Consumo", c.getId(), contrato.getLocalId(),
+                    "Consumo del contrato " + contrato.getNumero() + " | anulado: no -> sí | saldo de raciones: " + saldoAnterior + " -> " + (saldoAnterior + 1)
+                            + " | recargo devuelto: " + c.getRecargoLlevar() + " | motivo: " + motivo);
             consumos.flush();
             log.info("Consumo anulado | contrato={} | consumo={} | usuario={} | recargo={}", contrato.getNumero(), id, contexto.usuario().getCorreo(), c.getRecargoLlevar());
             return respuesta(c, detalle);

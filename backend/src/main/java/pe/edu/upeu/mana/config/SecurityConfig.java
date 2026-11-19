@@ -42,6 +42,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/comprobantes/*/reenviar").hasAuthority("COMPROBANTE_GESTIONAR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/comprobantes/**").hasAuthority("COMPROBANTE_EMITIR")
                         .requestMatchers(HttpMethod.GET, "/api/v1/comprobantes/**").hasAuthority("COMPROBANTE_VER")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auditoria").hasAuthority("AUDITORIA_VER")
                         .requestMatchers("/api/v1/usuarios/**").hasAuthority("USUARIO_GESTIONAR")
                         .requestMatchers("/api/v1/locales/**").hasAuthority("LOCAL_GESTIONAR")
                         .requestMatchers(HttpMethod.GET, "/api/v1/clientes/*/contrato-vigente").hasAuthority("CONTRATO_LEER")

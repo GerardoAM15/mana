@@ -31,6 +31,8 @@ import pe.edu.upeu.mana.util.PaginacionUtil;
 @Service
 public class ContratoServiceImpl implements ContratoService {
 
+    private final pe.edu.upeu.mana.service.service.AuditoriaService auditoria;
+
     private static final Logger log = LoggerFactory.getLogger(ContratoServiceImpl.class);
 
     private static final java.util.Set<String> CAMPOS_ORDENABLES = java.util.Set.of("id", "numero", "fechaInicio", "fechaFin", "montoTotal", "estado");
@@ -77,7 +79,7 @@ public class ContratoServiceImpl implements ContratoService {
 
     private final Clock clock;
 
-    public ContratoServiceImpl(ContratoRepository contratos, ClienteRepository clientes, TipoPlanRepository planes, PlanServicioRepository planServicios, ServicioRepository servicios, ServicioDiaAtencionRepository dias, DiaNoAtencionRepository cierres, TarifaServicioRepository tarifas, DetalleContratoRepository detalles, PagoContratoRepository pagos, ConsumoRepository consumos, ContextoLocalService contexto, CajaService cajas, CalculadoraRaciones calculadora, CorrelativoService correlativos, ValidadorPagos validadorPagos, EstadoContratoActual estados, ConsumoService consultaConsumos, ContratoMapper mapper, Clock clock, ReservaComprobanteService comprobantes) {
+    public ContratoServiceImpl(ContratoRepository contratos, ClienteRepository clientes, TipoPlanRepository planes, PlanServicioRepository planServicios, ServicioRepository servicios, ServicioDiaAtencionRepository dias, DiaNoAtencionRepository cierres, TarifaServicioRepository tarifas, DetalleContratoRepository detalles, PagoContratoRepository pagos, ConsumoRepository consumos, ContextoLocalService contexto, CajaService cajas, CalculadoraRaciones calculadora, CorrelativoService correlativos, ValidadorPagos validadorPagos, EstadoContratoActual estados, ConsumoService consultaConsumos, ContratoMapper mapper, Clock clock, ReservaComprobanteService comprobantes, pe.edu.upeu.mana.service.service.AuditoriaService auditoria) {
         this.contratos = contratos;
         this.clientes = clientes;
         this.planes = planes;
@@ -99,6 +101,7 @@ public class ContratoServiceImpl implements ContratoService {
         this.mapper = mapper;
         this.clock = clock;
         this.comprobantes = comprobantes;
+        this.auditoria = auditoria;
     }
 
     @Transactional(readOnly = true)
@@ -249,6 +252,8 @@ public class ContratoServiceImpl implements ContratoService {
             c.setEstado(EstadoContrato.ANULADO);
             c.setAnuladoEn(LocalDateTime.now(clock));
             c.setMotivoAnulacion(motivo);
+            auditoria.registrar(pe.edu.upeu.mana.enums.AccionAuditoria.ANULAR_CONTRATO, "Contrato", c.getId(), c.getLocalId(),
+                    "Contrato " + c.getNumero() + " | estado: " + estado + " -> ANULADO | devolución: " + c.getMontoTotal() + " | motivo: " + motivo);
             contratos.flush();
             log.info("Contrato anulado | numero={} | usuario={} | devolucion={}", c.getNumero(), contexto.usuario().getCorreo(), c.getMontoTotal());
             return respuesta(c);

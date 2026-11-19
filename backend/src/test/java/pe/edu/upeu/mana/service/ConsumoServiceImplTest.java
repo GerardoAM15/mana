@@ -91,8 +91,11 @@ class ConsumoServiceImplTest {
     }
 
     private ConsumoServiceImpl crearServicio(Clock reloj) {
-        return new ConsumoServiceImpl(contratos, detallesContrato, consumos, detallesConsumo, platos, new ValidadorAtencion(servicios, dias, cierres), servicios, metodos, contexto, cajas, menus, new EstadoContratoActual(reloj), mapper, reloj);
+        return new ConsumoServiceImpl(contratos, detallesContrato, consumos, detallesConsumo, platos, new ValidadorAtencion(servicios, dias, cierres), servicios, metodos, contexto, cajas, menus, new EstadoContratoActual(reloj), mapper, reloj, auditoria);
     }
+
+    @Mock
+    pe.edu.upeu.mana.service.service.AuditoriaService auditoria;
 
     private void base(String servicio, boolean atiende) {
         when(contexto.localId(null)).thenReturn(1L);
@@ -189,6 +192,8 @@ class ConsumoServiceImplTest {
         assertTrue(c.getAnulado());
         assertNull(c.getClaveDiaria());
         assertNotNull(c.getAnuladoEn());
+        verify(auditoria).registrar(eq(pe.edu.upeu.mana.enums.AccionAuditoria.ANULAR_CONSUMO), eq("Consumo"), eq(8L), any(),
+                argThat(d -> d.contains("saldo de raciones: 1 -> 2") && d.contains("Corrección de consumo")));
     }
 
     @Test void anularRecargoSinEfectivoNoModificaElConsumoNiElSaldo() {
