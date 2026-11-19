@@ -11,6 +11,12 @@ app:
     password: ${MANA_ADMIN_PASSWORD:}
     dni: ${MANA_ADMIN_DNI:}
 
+# Logs estructurados en JSON (formato ECS) para producción: cada línea incluye nivel, logger, mensaje y requestId.
+logging:
+  structured:
+    format:
+      console: ecs
+
 springdoc:
   api-docs:
     enabled: false

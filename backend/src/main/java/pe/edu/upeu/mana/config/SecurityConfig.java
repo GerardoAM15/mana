@@ -33,7 +33,8 @@ public class SecurityConfig {
                 .cors(c -> c.configurationSource(cors))
                 .exceptionHandling(e -> e.authenticationEntryPoint(entry).accessDeniedHandler(denied))
                 .authorizeHttpRequests(a -> a
-                        .requestMatchers("/api/health").permitAll()
+                        .requestMatchers("/api/health", "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/**").hasAuthority("USUARIO_GESTIONAR")
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/recuperar", "/api/v1/auth/restablecer").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll()

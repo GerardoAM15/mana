@@ -45,6 +45,25 @@ app:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+# Monitoreo básico (Actuator): health e info son públicos; metrics requiere USUARIO_GESTIONAR.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never
+  info:
+    env:
+      enabled: true
+info:
+  app:
+    nombre: MANA
+    descripcion: Sistema web de gestion para restaurante
 logging:
   level:
     pe.edu.upeu.mana: INFO
+  # requestId: identificador de cada petición (RequestIdFilter) para correlacionar los logs de una misma operación.
+  pattern:
+    level: "%5p [%X{requestId:-}]"
