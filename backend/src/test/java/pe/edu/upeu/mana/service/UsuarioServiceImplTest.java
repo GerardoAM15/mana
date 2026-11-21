@@ -113,7 +113,7 @@ class UsuarioServiceImplTest {
     }
 
     @Test void administradorPuedeDesactivarUnCajero() {
-        actual.setRol(RolUsuario.ADMINISTRADOR);gestion();bloquearObjetivo();
+        actual.setRol(RolUsuario.ADMINISTRADOR);gestion();bloquearObjetivo();empleadoDelObjetivo();
         service.eliminar(2L);assertFalse(objetivo.getActivo());assertEquals(8L,objetivo.getTokenVersion());
     }
 
@@ -143,7 +143,7 @@ class UsuarioServiceImplTest {
 
     @ParameterizedTest @EnumSource(RolUsuario.class)
     void duenoPuedeDesactivarCualquierOtroUsuarioSiQuedaUnDuenoActivo(RolUsuario rolObjetivo) {
-        objetivo.setRol(rolObjetivo);gestion();bloquearObjetivo();
+        objetivo.setRol(rolObjetivo);gestion();bloquearObjetivo();empleadoDelObjetivo();
         if(rolObjetivo==RolUsuario.DUENO)when(usuarios.countByRolAndActivoTrue(RolUsuario.DUENO)).thenReturn(2L);
         service.eliminar(2L);assertFalse(objetivo.getActivo());assertEquals(8L,objetivo.getTokenVersion());
     }
@@ -196,9 +196,33 @@ class UsuarioServiceImplTest {
     }
 
     @Test void listarCalculaGestionableSegunElUsuarioActual() {
-        actual.setRol(RolUsuario.ADMINISTRADOR);when(contexto.usuario()).thenReturn(actual);lectura();
+        actual.setRol(RolUsuario.ADMINISTRADOR);when(contexto.usuario()).thenReturn(actual);when(contexto.localId(null)).thenReturn(1L);lectura();
         when(usuarios.findAll(any(org.springframework.data.domain.Sort.class))).thenReturn(List.of(usuario(2L,RolUsuario.DUENO),usuario(3L,RolUsuario.ADMINISTRADOR),usuario(4L,RolUsuario.CAJERO)));
         assertEquals(List.of(false,false,true),service.listar().stream().map(UsuarioResponseDTO::isGestionable).toList());
+    }
+
+    @Test void administradorNoGestionaUsuariosDeOtroLocal() {
+        actual.setRol(RolUsuario.ADMINISTRADOR);gestion();bloquearObjetivo();empleadoDelObjetivo();
+        doThrow(new AccessDeniedException("El local no corresponde al usuario")).when(contexto).validarLocal(1L);
+        assertThrows(AccessDeniedException.class,()->service.eliminar(2L));
+        assertTrue(objetivo.getActivo());assertEquals(7L,objetivo.getTokenVersion());
+    }
+
+    @Test void administradorNoCreaUsuariosEnOtroLocal() {
+        actual.setRol(RolUsuario.ADMINISTRADOR);gestion();
+        doThrow(new AccessDeniedException("El local no corresponde al usuario")).when(contexto).validarLocal(1L);
+        assertThrows(AccessDeniedException.class,()->service.crear(request(RolUsuario.CAJERO,true)));
+        verify(usuarios,never()).saveAndFlush(any());
+    }
+
+    @Test void administradorSoloListaLosUsuariosDeSuLocal() {
+        actual.setRol(RolUsuario.ADMINISTRADOR);when(contexto.usuario()).thenReturn(actual);when(contexto.localId(null)).thenReturn(1L);
+        var otroLocal=new Empleado();otroLocal.setId(30L);otroLocal.setLocalId(2L);
+        var deOtro=usuario(5L,RolUsuario.CAJERO);deOtro.setEmpleadoId(30L);
+        lectura();when(empleados.findById(30L)).thenReturn(Optional.of(otroLocal));
+        var local2=new Local();local2.setId(2L);local2.setNombre("Otro");when(locales.findById(2L)).thenReturn(Optional.of(local2));
+        when(usuarios.findAll(any(org.springframework.data.domain.Sort.class))).thenReturn(List.of(usuario(4L,RolUsuario.CAJERO),deOtro));
+        assertEquals(List.of(4L),service.listar().stream().map(UsuarioResponseDTO::getId).toList());
     }
 
     private void operar(String operacion) {
@@ -217,6 +241,7 @@ class UsuarioServiceImplTest {
     }
 
     private void gestion() {when(roles.buscarParaActualizar("DUENO")).thenReturn(Optional.of(new Rol()));when(contexto.usuario()).thenReturn(actual);}
+    private void empleadoDelObjetivo() {when(empleados.findById(20L)).thenReturn(Optional.of(empleado));}
     private void bloquearObjetivo() {when(usuarios.buscarParaActualizar(objetivo.getId())).thenReturn(Optional.of(objetivo));}
     private void lectura() {when(empleados.findById(20L)).thenReturn(Optional.of(empleado));var local=new Local();local.setId(1L);local.setNombre("Local");when(locales.findById(1L)).thenReturn(Optional.of(local));}
     private void rolValido(RolUsuario rol) {when(roles.findById(rol.name())).thenReturn(Optional.of(new Rol()));}

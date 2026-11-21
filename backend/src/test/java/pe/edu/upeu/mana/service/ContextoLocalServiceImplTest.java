@@ -31,22 +31,34 @@ class ContextoLocalServiceImplTest {
         org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
     }
 
-    @ParameterizedTest
-    @EnumSource(value = RolUsuario.class, names = {"DUENO", "ADMINISTRADOR"})
-    void duenoYAdministradorPuedenConsultarOtrosLocales(RolUsuario rol) {
-        var service = preparar(rol);
+    @Test void soloElDuenoPuedeConsultarOtrosLocales() {
+        var service = preparar(RolUsuario.DUENO);
         assertEquals(1L, service.localId(null));
         assertEquals(2L, service.localId(2L));
         assertDoesNotThrow(() -> service.validarLocal(2L));
     }
 
-    @Test void cajeroSoloPuedeOperarEnSuLocal() {
-        var service = preparar(RolUsuario.CAJERO);
+    @ParameterizedTest
+    @EnumSource(value = RolUsuario.class, names = {"ADMINISTRADOR", "CAJERO"})
+    void administradorYCajeroSoloOperanEnSuLocal(RolUsuario rol) {
+        var service = preparar(rol);
         assertEquals(1L, service.localId(null));
         assertEquals(1L, service.localId(1L));
         assertDoesNotThrow(() -> service.validarLocal(1L));
         assertThrows(AccessDeniedException.class, () -> service.localId(2L));
         assertThrows(AccessDeniedException.class, () -> service.validarLocal(2L));
+    }
+
+    @Test void elDuenoSinFiltroVeTodosLosLocalesYConFiltroElElegido() {
+        var service = preparar(RolUsuario.DUENO);
+        assertNull(service.localIdOTodos(null));
+        assertEquals(2L, service.localIdOTodos(2L));
+    }
+
+    @Test void elAdministradorSiempreQuedaEnSuLocalAunqueNoFiltre() {
+        var service = preparar(RolUsuario.ADMINISTRADOR);
+        assertEquals(1L, service.localIdOTodos(null));
+        assertThrows(AccessDeniedException.class, () -> service.localIdOTodos(2L));
     }
 
     @Test void cacheEsExclusivaDeLaPeticionYEvitaConsultasRepetidas() {

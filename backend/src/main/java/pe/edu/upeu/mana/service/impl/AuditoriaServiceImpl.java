@@ -64,7 +64,8 @@ public class AuditoriaServiceImpl implements AuditoriaService {
             throw new DatosInvalidosException("Rango de fechas inválido");
         ZoneId zona = clock.getZone();
         var pageable = PaginacionUtil.construir(pagina, tamanio, ordenarPor, direccion, ORDENABLES, "fecha");
-        var pagina_ = eventos.filtrar(contexto.localId(localId), accion,
+        // El dueño sin filtro ve todos los locales; el administrador, solo el suyo.
+        var pagina_ = eventos.filtrar(contexto.localIdOTodos(localId), accion,
                         usuario == null || usuario.isBlank() ? null : usuario.trim(),
                         desde == null ? null : desde.atStartOfDay(zona).toOffsetDateTime(),
                         hasta == null ? null : hasta.plusDays(1).atStartOfDay(zona).toOffsetDateTime(), pageable)
