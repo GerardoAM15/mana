@@ -9,6 +9,6 @@ import pe.edu.upeu.mana.security.PermisosPorRol;
 public class UsuarioMapper {
 
     public LoginResponseDTO toResponse(Usuario u, Empleado e, Local l, String token, Long segundos) {
-        return new LoginResponseDTO(token, token == null ? null : "Bearer", segundos, u.getId(), e.getNombre() + " " + e.getApellido(), u.getRol().name(), l.getId(), l.getNombre(), PermisosPorRol.permisos(u.getRol().name()));
+        return new LoginResponseDTO(token, token == null ? null : "Bearer", segundos, u.getId(), e.getNombre() + " " + e.getApellido(), u.getRol().name(), l.getId(), l.getNombre(), PermisosPorRol.permisos(u.getRol().name()), null);
     }
 }

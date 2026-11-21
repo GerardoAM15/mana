@@ -43,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/recuperar", "/api/v1/auth/restablecer").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/v1/auth/me", "/api/v1/catalogos").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/cambiar-clave").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/comprobantes/*/reenviar").hasAuthority("COMPROBANTE_GESTIONAR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/comprobantes/**").hasAuthority("COMPROBANTE_EMITIR")
                         .requestMatchers(HttpMethod.GET, "/api/v1/comprobantes/**").hasAuthority("COMPROBANTE_VER")

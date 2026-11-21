@@ -24,15 +24,15 @@ class AdministradorBootstrapTest {
 
     @Test void siExisteUnDuenoNoCreaOtroUsuario() {
         bloquear();when(usuarios.existsByRol(RolUsuario.DUENO)).thenReturn(true);
-        bootstrap("ClaveSoloParaTest1").run(new DefaultApplicationArguments());
+        bootstrap("ClaveSoloParaTest1!").run(new DefaultApplicationArguments());
         verifyNoInteractions(empleados,personas,locales,encoder);
         verify(usuarios,never()).saveAndFlush(any());
     }
 
     @Test void sinDuenoCreaElUsuarioInicialComoDueno() {
-        bloquear();local();when(encoder.encode("ClaveSoloParaTest1")).thenReturn("hash-de-prueba");
+        bloquear();local();when(encoder.encode("ClaveSoloParaTest1!")).thenReturn("hash-de-prueba");
         when(empleados.saveAndFlush(any())).thenAnswer(i->{Empleado e=i.getArgument(0);e.setId(10L);return e;});
-        bootstrap("ClaveSoloParaTest1").run(new DefaultApplicationArguments());
+        bootstrap("ClaveSoloParaTest1!").run(new DefaultApplicationArguments());
         var captor=ArgumentCaptor.forClass(Usuario.class);verify(usuarios).saveAndFlush(captor.capture());
         assertEquals(RolUsuario.DUENO,captor.getValue().getRol());assertTrue(captor.getValue().getActivo());assertEquals(0L,captor.getValue().getTokenVersion());assertEquals(10L,captor.getValue().getEmpleadoId());
         verify(usuarios).existsByRol(RolUsuario.DUENO);verify(usuarios,never()).existsByRol(RolUsuario.ADMINISTRADOR);
@@ -46,7 +46,7 @@ class AdministradorBootstrapTest {
     @Test void noPromueveAutomaticamenteUnaCuentaExistenteConElCorreoConfigurado() {
         bloquear();local();var anterior=new Usuario();anterior.setRol(RolUsuario.ADMINISTRADOR);
         when(usuarios.findByCorreoIgnoreCase("inicial@example.invalid")).thenReturn(Optional.of(anterior));
-        bootstrap("ClaveSoloParaTest1").run(new DefaultApplicationArguments());
+        bootstrap("ClaveSoloParaTest1!").run(new DefaultApplicationArguments());
         assertEquals(RolUsuario.ADMINISTRADOR,anterior.getRol());verify(usuarios,never()).saveAndFlush(any());verifyNoInteractions(empleados,encoder);
     }
 
