@@ -1,0 +1,12 @@
+.sub { margin: 4px 0 0; color: var(--color-gris); }
+.filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-bottom: 18px; padding: 18px; }
+label { display: flex; flex-direction: column; gap: 5px; font-size: 14px; font-weight: 600; }
+.botones { display: flex; gap: 8px; }
+.fecha { white-space: nowrap; }
+.detalle { max-width: 520px; }
+.request { display: block; margin-top: 4px; color: var(--color-gris); font-family: ui-monospace, monospace; font-size: 12px; }
+
+.badge.ANULAR_VENTA,
+.badge.ANULAR_CONTRATO,
+.badge.ANULAR_CONSUMO { border-color: var(--color-peligro); background: var(--color-peligro-suave); color: var(--color-peligro); }
+.badge.CERRAR_CAJA { border-color: var(--color-info); background: var(--color-info-suave); color: var(--color-info); }

@@ -134,6 +134,12 @@ export const routes: Routes = [
         loadChildren: () => import('./features/locales/locales.routes').then(m => m.LOCALES_ROUTES),
       },
       {
+        path: 'auditoria',
+        canActivate: [permisoGuard],
+        data: { permiso: 'AUDITORIA_VER' },
+        loadChildren: () => import('./features/auditoria/auditoria.routes').then(m => m.AUDITORIA_ROUTES),
+      },
+      {
         path: 'acceso-denegado',
         title: 'Acceso denegado',
         loadComponent: () => import('./shared/pages/acceso-denegado/acceso-denegado').then(m => m.AccesoDenegado),
