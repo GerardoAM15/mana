@@ -1,11 +1,14 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, input, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { CatalogoService } from '../../../../core/services/catalogo-service';
 import { ConsultaDocumentoService } from '../../../../core/services/consulta-documento.service';
 import { AutocompletadoDni } from '../../../../core/utils/autocompletado-dni';
+import { claveSegura, DatosPersonales } from '../../../../core/utils/clave';
+import { MedidorClave } from '../../../../shared/components/medidor-clave/medidor-clave';
 import { erroresDeValidacion, mensajeError } from '../../../../core/utils/http-error';
 import { LocalService } from '../../../locales/services/local-service';
 import { Rol, rolesAsignables, UsuarioRequest } from '../../models/usuario.model';
@@ -21,7 +24,7 @@ interface OpcionLocal {
 // Jerarquía: el ADMINISTRADOR solo crea cajeros; el DUENO, cualquier rol.
 @Component({
   selector: 'app-usuario-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, MedidorClave],
   templateUrl: './usuario-form.html',
   styleUrl: './usuario-form.css',
 })
@@ -49,10 +52,23 @@ export class UsuarioForm implements OnInit {
     localId: this.fb.control<number | null>(null, Validators.required),
     cargo: ['', [Validators.required, Validators.maxLength(100)]],
     correo: ['', [Validators.required, Validators.email, Validators.maxLength(160)]],
-    clave: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(72)]],
+    clave: ['', [Validators.required, claveSegura(() => this.datosClave())]],
     rol: this.fb.control<Rol>('CAJERO', Validators.required),
     activo: [true],
   });
+
+  // Lo escrito en el formulario: el medidor avisa si la clave contiene el correo, DNI, nombre o apellido.
+  private readonly valores = toSignal(this.form.valueChanges, { initialValue: this.form.getRawValue() });
+  protected readonly clave = computed(() => this.valores().clave ?? '');
+  protected readonly datosPersonales = computed(() => this.datosDe(this.valores()));
+
+  private datosClave(): DatosPersonales {
+    return this.datosDe(this.form.getRawValue());
+  }
+
+  private datosDe(v: { correo?: string; dni?: string; nombre?: string; apellido?: string }): DatosPersonales {
+    return { correo: v.correo, dni: v.dni, nombre: v.nombre, apellido: v.apellido };
+  }
 
   // Autocompletado de nombre y apellido por DNI (RENIEC vía backend).
   protected readonly autocompletado = new AutocompletadoDni(inject(ConsultaDocumentoService), this.form.controls, () => this.esEdicion());
@@ -68,7 +84,7 @@ export class UsuarioForm implements OnInit {
     const id = this.id();
     if (!id) return;
     // Al editar, la clave es opcional (vacía = no se cambia) y el rol no se edita aquí.
-    this.form.controls.clave.setValidators([Validators.minLength(8), Validators.maxLength(72)]);
+    this.form.controls.clave.setValidators([claveSegura(() => this.datosClave())]);
     this.form.controls.rol.disable();
     this.usuarioService.obtener(Number(id)).subscribe({
       next: u => {
