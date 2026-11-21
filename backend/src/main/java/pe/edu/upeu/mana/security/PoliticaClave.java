@@ -77,9 +77,13 @@ public final class PoliticaClave {
         if (COMUNES.contains(base))
             return true;
         // "Password123!" o "Mana2026$" siguen siendo la misma palabra común con números al final.
-        String sinNumerosFinales = base.replaceAll("[0-9]+$", "");
-        String sinNumerosIniciales = base.replaceAll("^[0-9]+", "");
-        return COMUNES.contains(sinNumerosFinales) || COMUNES.contains(sinNumerosIniciales);
+        int fin = base.length();
+        while (fin > 0 && Character.isDigit(base.charAt(fin - 1)))
+            fin--;
+        int inicio = 0;
+        while (inicio < base.length() && Character.isDigit(base.charAt(inicio)))
+            inicio++;
+        return COMUNES.contains(base.substring(0, fin)) || COMUNES.contains(base.substring(inicio));
     }
 
     // 4 o más caracteres iguales seguidos: aaaa, 1111, !!!!

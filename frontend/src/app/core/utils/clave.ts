@@ -29,7 +29,12 @@ const esDigito = (c: string) => /\p{Nd}/u.test(c);
 
 function esComun(clave: string): boolean {
   const base = normalizar(clave).replace(/[^a-z0-9]/g, '');
-  return COMUNES.has(base) || COMUNES.has(base.replace(/[0-9]+$/, '')) || COMUNES.has(base.replace(/^[0-9]+/, ''));
+  // Se recortan los dígitos de los extremos a mano (sin regex con backtracking, regla S8786 de SonarQube).
+  let fin = base.length;
+  while (fin > 0 && esDigito(base[fin - 1])) fin--;
+  let inicio = 0;
+  while (inicio < base.length && esDigito(base[inicio])) inicio++;
+  return COMUNES.has(base) || COMUNES.has(base.slice(0, fin)) || COMUNES.has(base.slice(inicio));
 }
 
 function tieneRepeticion(clave: string): boolean {
