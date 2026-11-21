@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { claveGuard } from './core/guards/clave.guard';
 import { invitadoGuard } from './core/guards/invitado.guard';
 import { permisoGuard } from './core/guards/permiso.guard';
 import { MainLayout } from './layout/main-layout/main-layout';
@@ -25,9 +26,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/pages/restablecer-clave/restablecer-clave').then(m => m.RestablecerClave),
   },
   {
+    path: 'cambiar-clave',
+    title: 'Cambiar contraseña',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/auth/pages/cambiar-clave/cambiar-clave').then(m => m.CambiarClave),
+  },
+  {
     path: '',
     component: MainLayout,
-    canActivate: [authGuard],
+    // claveGuard: con una contraseña que ya no cumple la política no se entra hasta cambiarla.
+    canActivate: [authGuard, claveGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
       {
