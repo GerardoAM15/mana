@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import pe.edu.upeu.mana.entity.*;
 import pe.edu.upeu.mana.repository.*;
+import pe.edu.upeu.mana.security.PoliticaClave;
 
 @Component
 public class AdministradorBootstrap implements ApplicationRunner {
@@ -58,8 +59,10 @@ public class AdministradorBootstrap implements ApplicationRunner {
             log.warn("Primer dueño no creado: configure MANA_ADMIN_EMAIL, MANA_ADMIN_PASSWORD y MANA_ADMIN_DNI");
             return;
         }
-        if (!dni.matches("[0-9]{8}") || password.length() < 8 || password.length() > 72 || !correoValido(email))
+        if (!dni.matches("[0-9]{8}") || !correoValido(email))
             throw new IllegalStateException("Configuración del primer dueño inválida");
+        if (!PoliticaClave.cumple(password, email, dni, null, null))
+            throw new IllegalStateException("MANA_ADMIN_PASSWORD no es segura: " + String.join("; ", PoliticaClave.problemas(password, email, dni, null, null)));
         var local = locales.findAll().stream().filter(l -> Boolean.TRUE.equals(l.getActivo())).min(Comparator.comparing(Local::getId)).orElse(null);
         if (local == null) {
             log.warn("Primer dueño no creado: no hay local activo");

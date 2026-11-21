@@ -1,0 +1,23 @@
+package pe.edu.upeu.mana.dto.auth;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class CambiarClaveRequestDTO {
+
+    @NotBlank(message = "La contraseña actual es obligatoria")
+    @Size(max = 72, message = "La contraseña actual no es correcta")
+    private String claveActual;
+
+    @NotBlank(message = "La nueva contraseña es obligatoria")
+    @Size(min = 8, max = 72, message = "La clave debe tener entre 8 y 72 caracteres")
+    private String nuevaClave;
+}

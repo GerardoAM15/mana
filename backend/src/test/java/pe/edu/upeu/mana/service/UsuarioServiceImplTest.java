@@ -62,7 +62,7 @@ class UsuarioServiceImplTest {
 
     private void crearValido(RolUsuario asignado) {
         gestion(); datosValidos(asignado);
-        var r=request(asignado,true);r.setClave("ClaveSoloParaTest1");
+        var r=request(asignado,true);r.setClave("ClaveSoloParaTest1!");
         when(encoder.encode(r.getClave())).thenReturn("hash-de-prueba");
         when(empleados.saveAndFlush(any())).thenAnswer(i -> {Empleado e=i.getArgument(0);e.setId(20L);return e;});
         when(usuarios.saveAndFlush(any())).thenAnswer(i -> {Usuario u=i.getArgument(0);u.setId(2L);return u;});

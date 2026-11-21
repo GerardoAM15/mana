@@ -2,7 +2,7 @@ package pe.edu.upeu.mana.service.impl;
 
 import pe.edu.upeu.mana.enums.RolUsuario;
 import java.util.*;
-import java.nio.charset.StandardCharsets;
+import pe.edu.upeu.mana.security.PoliticaClave;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -102,8 +102,7 @@ public class UsuarioServiceImpl implements UsuarioService {
         if (!locales.findById(r.getLocalId()).map(l -> Boolean.TRUE.equals(l.getActivo())).orElse(false))
             throw new ReglaNegocioException("Local inexistente o inactivo");
         if (r.getClave() != null) {
-            if (r.getClave().getBytes(StandardCharsets.UTF_8).length > 72)
-                throw new DatosInvalidosException("La clave admite hasta 72 bytes UTF-8");
+            PoliticaClave.validar(r.getClave(), r.getCorreo(), r.getDni(), r.getNombre(), r.getApellido());
             u.setClaveHash(encoder.encode(r.getClave()));
         }
         e.setDni(r.getDni());
