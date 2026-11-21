@@ -1,0 +1,16 @@
+.medidor { display: grid; gap: 4px; margin-top: 6px; }
+.barra { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.barra span { height: 6px; border-radius: 3px; background: var(--color-borde); transition: background-color 0.2s; }
+.etiqueta { color: var(--color-gris); }
+.faltantes { margin: 0; padding-left: 18px; color: var(--color-peligro); font-size: 13px; }
+
+.debil .barra span:nth-child(1) { background: var(--color-peligro); }
+.debil .etiqueta { color: var(--color-peligro); }
+.media .barra span:nth-child(-n + 2) { background: var(--color-aviso); }
+.media .etiqueta { color: var(--color-aviso); }
+.fuerte .barra span { background: var(--color-exito); }
+.fuerte .etiqueta { color: var(--color-exito); }
+
+@media (prefers-reduced-motion: reduce) {
+  .barra span { transition: none; }
+}

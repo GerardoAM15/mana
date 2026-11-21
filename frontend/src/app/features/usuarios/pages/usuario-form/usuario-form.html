@@ -63,7 +63,8 @@
         <label>
           {{ esEdicion() ? 'Nueva contraseña (opcional)' : 'Contraseña' }}
           <input type="password" class="input" maxlength="72" autocomplete="new-password" formControlName="clave" />
-          @if (form.controls.clave.touched && form.controls.clave.invalid) { <small class="error">De 8 a 72 caracteres.</small> }
+          <app-medidor-clave [clave]="clave()" [datos]="datosPersonales()" />
+          @if (form.controls.clave.touched && form.controls.clave.hasError('required')) { <small class="error">Ingrese una contraseña.</small> }
           @if (erroresServidor()['clave']; as m) { <small class="error">{{ m }}</small> }
         </label>
         <label>
