@@ -15,6 +15,8 @@ export interface LoginResponse {
   localId: number;
   localNombre: string;
   permisos: string[];
+  // true si la contraseña con la que entró ya no cumple la política: debe cambiarla.
+  debeCambiarClave?: boolean;
 }
 
 // Lo que se guarda en sessionStorage: el token y el instante (ms) en que vence.
@@ -27,6 +29,7 @@ export interface Sesion {
   localNombre: string;
   permisos: string[];
   expiraEn: number;
+  debeCambiarClave?: boolean;
 }
 
 // POST /auth/recuperar (RecuperarClaveRequestDTO).
@@ -37,6 +40,12 @@ export interface RecuperarClaveRequest {
 // POST /auth/restablecer (RestablecerClaveRequestDTO).
 export interface RestablecerClaveRequest {
   token: string;
+  nuevaClave: string;
+}
+
+// POST /auth/cambiar-clave (CambiarClaveRequestDTO). Devuelve un LoginResponse con token nuevo.
+export interface CambiarClaveRequest {
+  claveActual: string;
   nuevaClave: string;
 }
 
