@@ -49,7 +49,9 @@
         Servicio
         <select class="input" formControlName="servicio">
           <option value="" disabled>Seleccione</option>
-          @for (s of catalogos.servicios(); track s.codigo) { <option [value]="s.codigo">{{ s.nombre }}</option> }
+          @for (s of catalogos.servicios(); track s.codigo) {
+            @if (s.codigo !== 'C') { <option [value]="s.codigo">{{ s.nombre }}</option> }
+          }
         </select>
       </label>
       <label>

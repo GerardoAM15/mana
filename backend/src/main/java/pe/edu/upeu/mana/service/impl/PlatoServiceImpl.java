@@ -99,5 +99,8 @@ public class PlatoServiceImpl implements PlatoService {
     private void validar(Plato e, PlatoRequestDTO r) {
         if (!categorias.findById(r.getCategoria()).map(c -> Boolean.TRUE.equals(c.getActivo())).orElse(false))
             throw new ReglaNegocioException("Categoría inexistente o inactiva");
+        r.setNombre(r.getNombre().trim().replaceAll("\\s+", " "));
+        if (repository.contarDuplicados(r.getNombre(), r.getCategoria(), e.getId() == null ? -1L : e.getId()) > 0)
+            throw new ReglaNegocioException("Ya existe un plato con ese nombre y categoría. Edite el existente o reactívelo si está inactivo");
     }
 }

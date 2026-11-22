@@ -92,6 +92,8 @@ public class PrecioSueltoServiceImpl implements PrecioSueltoService {
     }
 
     private void validar(PrecioSueltoRequestDTO r) {
+        if ("C".equals(r.getServicio()) && Boolean.TRUE.equals(r.getActivo()))
+            throw new ReglaNegocioException("En la cena solo se vende el menú completo; no se permiten precios sueltos activos");
         if (!servicios.findById(r.getServicio()).map(s -> Boolean.TRUE.equals(s.getActivo())).orElse(false))
             throw new ReglaNegocioException("Servicio inexistente o inactivo");
         if (!categorias.findById(r.getCategoria()).map(s -> Boolean.TRUE.equals(s.getActivo())).orElse(false))

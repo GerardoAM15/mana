@@ -4,6 +4,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { CatalogoService } from '../../../../core/services/catalogo-service';
 import { erroresDeValidacion, mensajeError } from '../../../../core/utils/http-error';
+import { entero, textoObligatorio } from '../../../../core/utils/validadores';
 import { ComponenteRegla, ReglaCobroRequest } from '../../models/regla-cobro.model';
 import { ReglaCobroService } from '../../services/regla-cobro-service';
 
@@ -24,7 +25,7 @@ export class ReglaCobroForm implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly erroresServidor = signal<Record<string, string>>({});
   protected readonly form = this.fb.group({
-    nombre: ['', [Validators.required, Validators.maxLength(120)]],
+    nombre: ['', [textoObligatorio, Validators.maxLength(120)]],
     servicio: ['', Validators.required],
     precioCombo: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.01)]),
     recargoLlevar: this.fb.control<number | null>(0, [Validators.required, Validators.min(0)]),
@@ -107,7 +108,7 @@ export class ReglaCobroForm implements OnInit {
   private nuevoComponente(componente?: ComponenteRegla) {
     return this.fb.group({
       categoria: [componente?.categoria ?? '', Validators.required],
-      cantidad: this.fb.control<number | null>(componente?.cantidad ?? 1, [Validators.required, Validators.min(1)]),
+      cantidad: this.fb.control<number | null>(componente?.cantidad ?? 1, [Validators.required, Validators.min(1), entero]),
     });
   }
 }

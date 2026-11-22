@@ -4,6 +4,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { CatalogoService } from '../../../../core/services/catalogo-service';
 import { erroresDeValidacion, mensajeError } from '../../../../core/utils/http-error';
+import { textoObligatorio } from '../../../../core/utils/validadores';
 import { PlatoRequest } from '../../models/plato.model';
 import { PlatoService } from '../../services/plato-service';
 
@@ -24,7 +25,7 @@ export class PlatoForm implements OnInit {
   protected readonly error = signal<string | null>(null);
   protected readonly erroresServidor = signal<Record<string, string>>({});
   protected readonly form = this.fb.group({
-    nombre: ['', [Validators.required, Validators.maxLength(120)]],
+    nombre: ['', [textoObligatorio, Validators.maxLength(120)]],
     categoria: ['', Validators.required],
     activo: [true],
   });

@@ -33,8 +33,10 @@ public class MenuServiceImpl implements MenuService {
     private final MenuMapper mapper;
 
     private final ValidadorAtencion atencion;
+    private final ReglaCobroRepository reglas;
+    private final ComponenteReglaRepository componentes;
 
-    public MenuServiceImpl(ProgramacionMenuRepository menus, MenuPlatoRepository relaciones, PlatoRepository platos, ServicioRepository servicios, ContextoLocalService contexto, MenuMapper mapper, ValidadorAtencion atencion) {
+    public MenuServiceImpl(ProgramacionMenuRepository menus, MenuPlatoRepository relaciones, PlatoRepository platos, ServicioRepository servicios, ContextoLocalService contexto, MenuMapper mapper, ValidadorAtencion atencion, ReglaCobroRepository reglas, ComponenteReglaRepository componentes) {
         this.menus = menus;
         this.relaciones = relaciones;
         this.platos = platos;
@@ -42,6 +44,8 @@ public class MenuServiceImpl implements MenuService {
         this.contexto = contexto;
         this.mapper = mapper;
         this.atencion = atencion;
+        this.reglas = reglas;
+        this.componentes = componentes;
     }
 
     @Transactional
@@ -59,9 +63,20 @@ public class MenuServiceImpl implements MenuService {
         if (!servicios.findById(servicio).map(s -> Boolean.TRUE.equals(s.getActivo())).orElse(false))
             throw new ReglaNegocioException("Servicio inexistente o inactivo");
         atencion.validar(localId, fecha, servicio);
+        if (ids == null || ids.isEmpty())
+            throw new DatosInvalidosException("Seleccione al menos un plato");
         var seleccion = platos.findAllById(ids);
         if (seleccion.size() != ids.size() || seleccion.stream().anyMatch(p -> !Boolean.TRUE.equals(p.getActivo())))
             throw new ReglaNegocioException("Hay platos inexistentes o inactivos");
+        var activas = reglas.findByServicioAndActivoTrueOrderById(servicio);
+        if (activas.size() != 1)
+            throw new ReglaNegocioException("Configure un único menú público activo con su composición para este turno antes de programar");
+        var categoriasPermitidas = componentes.findByReglaId(activas.getFirst().getId()).stream()
+                .map(ComponenteRegla::getCategoria).collect(java.util.stream.Collectors.toSet());
+        if (categoriasPermitidas.isEmpty())
+            throw new ReglaNegocioException("El menú público del turno no tiene composición configurada");
+        if (seleccion.stream().anyMatch(p -> !categoriasPermitidas.contains(p.getCategoria())))
+            throw new ReglaNegocioException("Hay platos de categorías que no corresponden a la composición de este turno");
         var e = menus.buscarFechaParaActualizar(localId, fecha, servicio).orElseGet(ProgramacionMenu::new);
         e.setLocalId(localId);
         e.setFecha(fecha);

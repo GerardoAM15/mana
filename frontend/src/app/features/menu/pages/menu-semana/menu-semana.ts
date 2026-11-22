@@ -32,7 +32,6 @@ interface Celda {
 
 interface GrupoBanco {
   categoria: string;
-  enComposicion: boolean;
   platos: Plato[];
 }
 
@@ -68,26 +67,29 @@ export class MenuSemana implements OnInit {
 
   private readonly porCelda = computed(() => new Map(this.menus().map(m => [`${m.fecha}|${m.servicio}`, m])));
   private readonly feriadoPorFecha = computed(() => new Map(this.feriados().map(f => [f.fecha, f.motivo])));
+  private consultaSemana = 0;
 
   // Editor de una celda.
   protected readonly editando = signal<Celda | null>(null);
   protected readonly elegidos = signal<Set<number>>(new Set());
   protected readonly guardando = signal(false);
   protected readonly errorModal = signal<string | null>(null);
-  protected readonly gruposBanco = computed<GrupoBanco[]>(() => {
+  protected readonly categoriasDelTurno = computed(() => {
     const celda = this.editando();
-    if (!celda) return [];
-    const composicion = this.reglas().find(r => r.servicio === celda.servicio && r.activo)?.componentes.map(c => c.categoria) ?? [];
-    const visibles = this.platos().filter(p => p.activo || this.elegidos().has(p.id));
-    const categorias = [...new Set([...composicion, ...visibles.map(p => p.categoria)])];
-    return categorias
+    return celda ? this.reglas().find(r => r.servicio === celda.servicio && r.activo)?.componentes.map(c => c.categoria) ?? [] : [];
+  });
+  protected readonly seleccionFueraDelTurno = computed(() => {
+    const permitidas = new Set(this.categoriasDelTurno());
+    return [...this.elegidos()].some(id => !this.platos().some(p => p.id === id && p.activo && permitidas.has(p.categoria)));
+  });
+  protected readonly gruposBanco = computed<GrupoBanco[]>(() => {
+    const visibles = this.platos().filter(p => p.activo);
+    return this.categoriasDelTurno()
       .map(categoria => ({
         categoria,
-        enComposicion: composicion.includes(categoria),
         platos: visibles.filter(p => p.categoria === categoria).sort((a, b) => a.nombre.localeCompare(b.nombre)),
       }))
-      .filter(g => g.platos.length > 0)
-      .sort((a, b) => Number(b.enComposicion) - Number(a.enComposicion));
+      .filter(g => g.platos.length > 0);
   });
 
   // Clonar día y copiar segundos a la cena.
@@ -144,16 +146,21 @@ export class MenuSemana implements OnInit {
   }
 
   cargarSemana(): void {
+    const consulta = ++this.consultaSemana;
     const desde = this.lunes();
     const hasta = sumarDias(desde, 6);
     this.cargando.set(true);
     this.error.set(null);
+    this.menus.set([]);
+    this.feriados.set([]);
     this.menuService.listar({ desde, hasta, servicio: null, localId: null }).subscribe({
       next: menus => {
+        if (consulta !== this.consultaSemana) return;
         this.menus.set(menus);
         this.cargando.set(false);
       },
       error: (err: HttpErrorResponse) => {
+        if (consulta !== this.consultaSemana) return;
         this.error.set(mensajeError(err));
         this.cargando.set(false);
       },
@@ -161,8 +168,8 @@ export class MenuSemana implements OnInit {
     // Los feriados exigen CALENDARIO_GESTIONAR; sin ese permiso solo se grisan los días sin atención.
     if (this.auth.tienePermiso('CALENDARIO_GESTIONAR')) {
       this.diaNoAtencionService.listar({ desde, hasta, localId: null }).subscribe({
-        next: feriados => this.feriados.set(feriados),
-        error: () => this.feriados.set([]),
+        next: feriados => { if (consulta === this.consultaSemana) this.feriados.set(feriados); },
+        error: () => { if (consulta === this.consultaSemana) this.feriados.set([]); },
       });
     }
   }
@@ -185,9 +192,16 @@ export class MenuSemana implements OnInit {
     this.editando.set({ fecha, servicio });
     this.elegidos.set(new Set(this.menu(fecha, servicio)?.platos.map(p => p.platoId) ?? []));
     this.errorModal.set(null);
+    if (this.categoriasDelTurno().length === 0) {
+      this.errorModal.set('Configure primero un menú público activo con su composición para este turno, en Menú → Precios.');
+    } else if (this.seleccionFueraDelTurno()) {
+      this.errorModal.set('Esta programación contiene platos inactivos o de categorías que ya no corresponden al turno. Retírelos antes de guardar.');
+    }
   }
 
   alternar(platoId: number): void {
+    const plato = this.platos().find(p => p.id === platoId);
+    if (!this.elegidos().has(platoId) && (!plato?.activo || !this.categoriasDelTurno().includes(plato.categoria))) return;
     this.elegidos.update(actual => {
       const nuevo = new Set(actual);
       if (nuevo.has(platoId)) nuevo.delete(platoId);
@@ -196,9 +210,27 @@ export class MenuSemana implements OnInit {
     });
   }
 
+  retirarPlatosFueraDelTurno(): void {
+    const permitidos = new Set(this.gruposBanco().flatMap(g => g.platos.map(p => p.id)));
+    this.elegidos.update(ids => new Set([...ids].filter(id => permitidos.has(id))));
+    this.errorModal.set(null);
+  }
+
   guardarCelda(): void {
     const celda = this.editando();
     if (!celda) return;
+    if (this.categoriasDelTurno().length === 0) {
+      this.errorModal.set('Configure primero un menú público activo con su composición para este turno, en Menú → Precios.');
+      return;
+    }
+    if (this.elegidos().size === 0) {
+      this.errorModal.set('Seleccione al menos un plato para programar el menú.');
+      return;
+    }
+    if (this.seleccionFueraDelTurno()) {
+      this.errorModal.set('Retire los platos inactivos o que no corresponden a las categorías de este turno.');
+      return;
+    }
     this.ejecutar(
       this.menuService.guardar({ fecha: celda.fecha, servicio: celda.servicio, platoIds: [...this.elegidos()] }),
       () => this.editando.set(null),
