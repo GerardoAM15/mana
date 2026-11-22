@@ -1,0 +1,24 @@
+<main class="fondo">
+  <form class="card acceso" [formGroup]="form" (ngSubmit)="guardar()">
+    <p class="eyebrow">MANÁ · App de escritorio</p>
+    <h2>Conectar con el servidor</h2>
+    <p class="sub">Ingrese la dirección de la PC donde corre MANÁ en el local.</p>
+
+    @if (error()) {
+      <div class="alerta">{{ error() }}</div>
+    }
+
+    <label for="url">Dirección del servidor</label>
+    <input id="url" class="input" formControlName="url" placeholder="192.168.1.10:8080" autocomplete="off" />
+    @if (form.controls.url.touched && form.controls.url.invalid) {
+      <small class="error">Ingrese la dirección del servidor.</small>
+    }
+
+    <button type="submit" class="btn btn-primary ancho" [disabled]="probando()">
+      {{ probando() ? 'Probando conexión...' : 'Probar y guardar' }}
+    </button>
+    @if (actual) {
+      <a routerLink="/login" class="enlace">Volver sin cambiar ({{ actual }})</a>
+    }
+  </form>
+</main>
