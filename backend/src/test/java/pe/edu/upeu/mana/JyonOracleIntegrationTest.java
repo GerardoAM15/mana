@@ -209,6 +209,20 @@ class JyonOracleIntegrationTest {
         ok("PUT","/api/v1/menus",menu(lunes.plusDays(1),servicio,id),200);
     }
     @Test void cu23RechazaProgramacionEnCierre()throws Exception{long id=crearPlato("Cerrado",categoria);ok("POST","/api/v1/dias-no-atencion",Map.of("fecha",lunes.toString(),"motivo",prefijo),201);ok("PUT","/api/v1/menus",menu(lunes,servicio,id),409);}
+    @Test void cu23CerrarFechaConMenuConservaPlatosEInformaDisponibilidadAlLector()throws Exception{
+        long plato=crearPlato("Programado",categoria);
+        var guardado=ok("PUT","/api/v1/menus",menu(lunes,servicio,plato),200);
+        assertTrue(guardado.get("atiende").asBoolean());
+        var cierre=ok("POST","/api/v1/dias-no-atencion",Map.of("fecha",lunes.toString(),"motivo",prefijo),201);
+        var consulta=request("GET","/api/v1/menus?desde="+lunes+"&hasta="+lunes,null,"MENU_LEER").andReturn().getResponse();
+        assertEquals(200,consulta.getStatus());var cerrado=json.readTree(consulta.getContentAsString()).get(0);
+        assertFalse(cerrado.get("atiende").asBoolean());assertEquals(guardado.get("id"),cerrado.get("id"));
+        assertEquals(plato,cerrado.get("platos").get(0).get("platoId").asLong());
+        ok("DELETE","/api/v1/dias-no-atencion/"+cierre.get("id").asLong(),null,204);
+        var reabierto=ok("GET","/api/v1/menus?desde="+lunes+"&hasta="+lunes,null,200).get(0);
+        assertTrue(reabierto.get("atiende").asBoolean());assertEquals(guardado.get("id"),reabierto.get("id"));
+        assertEquals(plato,reabierto.get("platos").get(0).get("platoId").asLong());
+    }
     @Test void cu23FechaDuplicadaDevuelve409()throws Exception{var dto=Map.of("fecha",lunes.toString(),"motivo",prefijo);ok("POST","/api/v1/dias-no-atencion",dto,201);ok("POST","/api/v1/dias-no-atencion",dto,409);}
     @Test void cu23CalculaRacionesConCierreYPeriodoMensualBisiesto(){assertEquals(4,calculadora.calcular(lunes,lunes.plusDays(6),Set.of(1,2,3,4,5),Set.of(lunes.plusDays(2))));assertEquals(LocalDate.of(2032,2,29),calculadora.fechaFin(LocalDate.of(2032,2,1),PeriodoPlan.MENSUAL));}
 

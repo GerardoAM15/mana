@@ -156,6 +156,8 @@ public class MenuServiceImpl implements MenuService {
     }
 
     private MenuResponseDTO respuesta(ProgramacionMenu e) {
-        return mapper.toResponse(e, obtenerPlatos(e));
+        var respuesta = mapper.toResponse(e, obtenerPlatos(e));
+        respuesta.setAtiende(atencion.seAtiende(e.getLocalId(), e.getFecha(), e.getServicio()));
+        return respuesta;
     }
 }

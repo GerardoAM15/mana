@@ -13,6 +13,7 @@ export interface MenuDia {
   servicio: string;
   platos: MenuPlato[];
   version: number;
+  atiende: boolean;
 }
 
 // MenuRequestDTO (PUT /menus): crea o reemplaza el menú de esa fecha y servicio.

@@ -24,4 +24,7 @@ public class MenuResponseDTO {
     private List<MenuPlatoResponseDTO> platos;
 
     private Long version;
+
+    // La programación se conserva aunque el calendario bloquee la atención.
+    private boolean atiende;
 }

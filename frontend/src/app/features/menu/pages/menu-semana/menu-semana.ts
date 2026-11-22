@@ -184,7 +184,8 @@ export class MenuSemana implements OnInit {
 
   // Grisado si el servicio no se atiende ese día de la semana (p. ej. cena del viernes) o es feriado.
   protected atiende(fecha: string, servicio: string): boolean {
-    return this.catalogos.seAtiende(servicio, diaSemanaIso(fecha)) && !this.feriado(fecha);
+    return this.menu(fecha, servicio)?.atiende !== false
+      && this.catalogos.seAtiende(servicio, diaSemanaIso(fecha)) && !this.feriado(fecha);
   }
 
   abrirEditor(fecha: string, servicio: string): void {
@@ -302,19 +303,37 @@ export class MenuSemana implements OnInit {
   }
 
   // ---- Compartir el menú del día por WhatsApp (se pega en el grupo o lista de difusión) ----
-  protected readonly compartiendo = signal<{ fecha: string; texto: string } | null>(null);
+  protected readonly compartiendo = signal<{ fecha: string; texto: string; base: string } | null>(null);
   protected readonly copiado = signal<string | null>(null);
 
-  // Texto del menú del día o null si ese día no tiene platos programados.
+  // Solo anuncia turnos que siguen habilitados, aunque existan platos guardados.
   protected textoMenu(fecha: string): string | null {
-    return mensajeMenuDelDia(fecha, this.menus(), c => this.catalogos.nombreServicio(c), c => this.catalogos.nombreCategoria(c));
+    const disponibles = this.menus().filter(m => m.fecha === fecha && this.atiende(m.fecha, m.servicio));
+    return mensajeMenuDelDia(fecha, disponibles, c => this.catalogos.nombreServicio(c), c => this.catalogos.nombreCategoria(c));
   }
 
   abrirCompartir(fecha: string): void {
-    const texto = this.textoMenu(fecha);
-    if (!texto) return;
+    if (!this.textoMenu(fecha)) return;
+    const consulta = this.consultaSemana;
+    this.compartiendo.set(null);
     this.copiado.set(null);
-    this.compartiendo.set({ fecha, texto });
+    // Comprueba el calendario actual también para lectores sin acceso a los cierres.
+    this.menuService.listar({ desde: fecha, hasta: fecha, servicio: null, localId: null }).subscribe({
+      next: menus => {
+        if (consulta !== this.consultaSemana) return;
+        this.menus.update(actuales => [...actuales.filter(m => m.fecha !== fecha), ...menus]);
+        const texto = this.textoMenu(fecha);
+        if (!texto) {
+          this.error.set('Ese día no tiene menús disponibles para compartir. Revise los días de atención y cierres.');
+          return;
+        }
+        this.error.set(null);
+        this.compartiendo.set({ fecha, texto, base: texto });
+      },
+      error: (err: HttpErrorResponse) => {
+        if (consulta === this.consultaSemana) this.error.set(mensajeError(err));
+      },
+    });
   }
 
   // El texto se puede retocar en el cuadro antes de compartirlo.
@@ -323,7 +342,7 @@ export class MenuSemana implements OnInit {
   }
 
   async copiarTexto(): Promise<void> {
-    const c = this.compartiendo();
+    const c = this.compartirVigente();
     if (!c) return;
     try {
       await navigator.clipboard.writeText(c.texto);
@@ -334,7 +353,7 @@ export class MenuSemana implements OnInit {
   }
 
   abrirWhatsApp(): void {
-    const c = this.compartiendo();
+    const c = this.compartirVigente();
     if (!c) return;
     // wa.me abre WhatsApp (app o web) con el texto escrito; el usuario elige el chat y pulsa enviar.
     window.open(enlaceWhatsApp(c.texto), '_blank', 'noopener');
@@ -343,6 +362,14 @@ export class MenuSemana implements OnInit {
 
   cerrarCompartir(): void {
     this.compartiendo.set(null);
+  }
+
+  private compartirVigente() {
+    const c = this.compartiendo();
+    if (c && this.textoMenu(c.fecha) === c.base) return c;
+    if (c) this.error.set('La programación o la atención cambió. Vuelva a abrir el menú para compartir.');
+    this.compartiendo.set(null);
+    return null;
   }
 
   // Deshabilita (y desmarca) los servicios que no se atienden en la fecha destino o caen en feriado.
