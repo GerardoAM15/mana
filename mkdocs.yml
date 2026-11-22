@@ -22,6 +22,7 @@ nav:
   - Inicio: index.md
   - Arquitectura: arquitectura.md
   - Ejecución y despliegue: despliegue.md
+  - Versión de escritorio: escritorio.md
   - Unidad 3 (LP2):
       - Optimización y caché: optimizacion.md
       - Observabilidad: observabilidad.md
