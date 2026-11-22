@@ -1,5 +1,6 @@
 package pe.edu.upeu.mana.service.service;
 
+import pe.edu.upeu.mana.dto.auth.CambiarClaveRequestDTO;
 import pe.edu.upeu.mana.dto.auth.LoginRequestDTO;
 import pe.edu.upeu.mana.dto.auth.LoginResponseDTO;
 import pe.edu.upeu.mana.dto.auth.RecuperarClaveRequestDTO;
@@ -14,4 +15,6 @@ public interface AuthService {
     void recuperar(RecuperarClaveRequestDTO request);
 
     void restablecer(RestablecerClaveRequestDTO request);
+
+    LoginResponseDTO cambiarClave(String correo, CambiarClaveRequestDTO request);
 }

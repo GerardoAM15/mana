@@ -74,7 +74,7 @@ class AuditoriaServiceImplTest {
 
     @Test
     void listarFiltraPorElLocalPermitidoYRangoDeFechas() {
-        when(contexto.localId(null)).thenReturn(1L);
+        when(contexto.localIdOTodos(null)).thenReturn(1L);
         when(eventos.filtrar(eq(1L), eq(AccionAuditoria.ANULAR_CONTRATO), isNull(), any(), any(), any())).thenReturn(new PageImpl<>(List.of()));
 
         var r = servicio().listar(null, AccionAuditoria.ANULAR_CONTRATO, " ", LocalDate.parse("2026-11-01"), LocalDate.parse("2026-11-19"), 0, 20, "fecha", "desc");
@@ -82,6 +82,14 @@ class AuditoriaServiceImplTest {
         assertEquals(0, r.getTotalElementos());
         verify(eventos).filtrar(eq(1L), eq(AccionAuditoria.ANULAR_CONTRATO), isNull(),
                 eq(OffsetDateTime.parse("2026-11-01T00:00-05:00")), eq(OffsetDateTime.parse("2026-11-20T00:00-05:00")), any());
+    }
+
+    @Test
+    void elDuenoSinFiltroConsultaTodosLosLocales() {
+        when(contexto.localIdOTodos(null)).thenReturn(null);
+        when(eventos.filtrar(isNull(), isNull(), isNull(), isNull(), isNull(), any())).thenReturn(new PageImpl<>(List.of()));
+        servicio().listar(null, null, null, null, null, 0, 20, "fecha", "desc");
+        verify(eventos).filtrar(isNull(), isNull(), isNull(), isNull(), isNull(), any());
     }
 
     @Test

@@ -64,6 +64,7 @@ export const MENU_GRUPOS: MenuGrupo[] = [
       { etiqueta: 'Comprobantes', ruta: '/comprobantes', icono: 'comprobantes', permiso: 'COMPROBANTE_GESTIONAR' },
       { etiqueta: 'Usuarios', ruta: '/usuarios', icono: 'usuarios', permiso: 'USUARIO_GESTIONAR' },
       { etiqueta: 'Locales', ruta: '/locales', icono: 'locales', permiso: 'LOCAL_GESTIONAR' },
+      { etiqueta: 'Auditoría', ruta: '/auditoria', icono: 'auditoria', permiso: 'AUDITORIA_VER' },
     ],
   },
 ];

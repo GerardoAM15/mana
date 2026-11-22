@@ -1,6 +1,6 @@
 package pe.edu.upeu.mana.service.impl;
 
-import pe.edu.upeu.mana.security.PermisosPorRol;
+import pe.edu.upeu.mana.enums.RolUsuario;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -61,7 +61,8 @@ public class ContextoLocalServiceImpl implements ContextoLocalService {
             if (request != null) request.setAttribute(clave, e);
             if (filtro == null)
                 return e.getLocalId();
-            if (!PermisosPorRol.esAdministradorODueno(u.getRol()) && !filtro.equals(e.getLocalId()))
+            // Solo el dueño consulta otros locales; administrador y cajero quedan en el suyo.
+            if (u.getRol() != RolUsuario.DUENO && !filtro.equals(e.getLocalId()))
                 throw new AccessDeniedException("El local no corresponde al usuario");
             return filtro;
         } finally {
@@ -75,10 +76,19 @@ public class ContextoLocalServiceImpl implements ContextoLocalService {
         log.debug("Inicio ContextoLocalServiceImpl.validarLocal");
         try {
             var u = usuario();
-            if (!PermisosPorRol.esAdministradorODueno(u.getRol()) && !localId.equals(localId(null)))
+            if (u.getRol() != RolUsuario.DUENO && !localId.equals(localId(null)))
                 throw new AccessDeniedException("El local no corresponde al usuario");
         } finally {
             log.debug("Fin ContextoLocalServiceImpl.validarLocal | duracionMs={}", (System.nanoTime() - inicioOperacion) / 1_000_000);
         }
+    }
+
+    // Para consultas que el dueño puede ver de todos los locales a la vez (auditoría):
+    // sin filtro, el dueño recibe null (= todos); los demás reciben su propio local.
+    @Transactional(readOnly = true)
+    public Long localIdOTodos(Long filtro) {
+        if (filtro == null && usuario().getRol() == RolUsuario.DUENO)
+            return null;
+        return localId(filtro);
     }
 }

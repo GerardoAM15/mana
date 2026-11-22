@@ -55,7 +55,7 @@ describe('gruposVisibles', () => {
 
   it('no modifica la configuración original', () => {
     gruposVisibles(() => false);
-    expect(MENU_GRUPOS.flatMap(g => g.items).length).toBe(15);
+    expect(MENU_GRUPOS.flatMap(g => g.items).length).toBe(16);
   });
 });
 
