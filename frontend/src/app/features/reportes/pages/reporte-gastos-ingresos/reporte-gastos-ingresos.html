@@ -24,7 +24,7 @@
 
   <div class="card seccion-reporte">
     <h3>Ingresos y gastos por {{ rango()?.agrupacion === 'MES' ? 'mes' : 'día' }}</h3>
-    <app-barras [series]="series" [filas]="filas()" [moneda]="true" />
+    <app-grafico tipo="linea" [series]="series" [filas]="filas()" [moneda]="true" />
   </div>
 
   <table class="tabla">

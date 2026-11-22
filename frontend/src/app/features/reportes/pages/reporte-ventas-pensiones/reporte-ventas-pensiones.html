@@ -23,16 +23,13 @@
   @if (totales().total > 0) {
     <div class="card seccion-reporte">
       <h3>Participación en el periodo</h3>
-      <div class="participacion" aria-hidden="true">
-        <div class="pensiones" [style.width.%]="totales().partePensiones * 100"></div>
-        <div class="ventas" [style.width.%]="totales().parteVentas * 100"></div>
-      </div>
+      <app-grafico tipo="dona" titulo="Participación de pensiones y ventas" [series]="series" [filas]="filas()" [moneda]="true" />
     </div>
   }
 
   <div class="card seccion-reporte">
     <h3>Comparativo por periodo</h3>
-    <app-barras [series]="series" [filas]="filas()" [moneda]="true" />
+    <app-grafico tipo="barras" [series]="series" [filas]="filas()" [moneda]="true" />
   </div>
 
   <table class="tabla">

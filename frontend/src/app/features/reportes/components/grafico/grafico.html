@@ -1,0 +1,7 @@
+@if (filas().length) {
+  <div class="lienzo" role="img" [attr.aria-label]="titulo()" [class.alto]="tipo() === 'horizontal' && filas().length > 8">
+    <canvas #lienzo></canvas>
+  </div>
+} @else {
+  <p class="vacio">No hay datos para graficar.</p>
+}

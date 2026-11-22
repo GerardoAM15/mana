@@ -1,0 +1,8 @@
+:host { display: block; }
+.lienzo { position: relative; height: 300px; }
+.lienzo.alto { height: 460px; }
+.vacio { margin: 0; color: var(--color-gris); }
+
+@media print {
+  .lienzo { height: 260px; break-inside: avoid; }
+}
