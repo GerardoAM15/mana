@@ -18,6 +18,13 @@ cada commit tiene como autor al responsable del módulo y como coautores al rest
 
 Los casos de uso siguen la numeración de la Matriz de Requerimientos v8.
 
+## Correcciones de menú y planes
+
+- Para una base existente, ejecutar [migracion-v7-platos-unicos.sql](docs/migracion-v7-platos-unicos.sql) como dueño del esquema, con el backend detenido y respaldo previo de las cinco tablas indicadas en el script. Unifica platos con el mismo nombre normalizado y categoría, conserva referencias y cantidades, e instala un trigger y un índice único. En una instalación nueva, `mana-hibrido-v4.sql` ya incluye esa protección.
+- Antes de programar un turno debe existir un menú público activo con su composición. Se admiten varias alternativas de cada categoría; no se admiten platos de categorías ajenas al turno.
+- En cena no se permiten precios sueltos activos. Un precio antiguo de cena puede desactivarse, pero no reactivarse.
+- Las integraciones de los seis casos de uso de Jyon se ejecutan con `MANA_ORACLE_TEST=true` y `./mvnw -Dtest=JyonOracleIntegrationTest test` (en PowerShell: `.\mvnw.cmd '-Dtest=JyonOracleIntegrationTest' test`). Requieren el esquema y la migración v7; cada prueba termina en rollback.
+
 ## Ejecutar
 
 La raíz Maven es esta carpeta, `mana_backend/`, dentro del directorio abierto en IntelliJ. El esquema debe existir previamente y corresponder a [docs/mana-hibrido-v4.sql](docs/mana-hibrido-v4.sql) más [docs/mana-v5-comprobantes.sql](docs/mana-v5-comprobantes.sql), [docs/mana-v6-comprobante-correo.sql](docs/mana-v6-comprobante-correo.sql) y [docs/mana-v7-auditoria.sql](docs/mana-v7-auditoria.sql). La aplicación **solo valida** el esquema: no ejecuta ese script, ALTER, migraciones ni DDL. Flyway está deshabilitado y no tiene dependencia.

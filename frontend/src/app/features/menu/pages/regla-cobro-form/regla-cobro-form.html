@@ -48,7 +48,7 @@
       <legend>Composición</legend>
       @for (c of form.controls.componentes.controls; track c; let i = $index) {
         <div class="componente" [formGroupName]="i">
-          <input type="number" min="1" class="input cantidad" formControlName="cantidad" aria-label="Cantidad" />
+          <input type="number" min="1" step="1" class="input cantidad" formControlName="cantidad" aria-label="Cantidad" />
           <select class="input" formControlName="categoria" aria-label="Categoría">
             <option value="" disabled>Categoría</option>
             @for (cat of catalogos.categorias(); track cat.codigo) {
@@ -59,7 +59,7 @@
         </div>
       }
       @if (form.controls.componentes.touched && form.controls.componentes.invalid) {
-        <small class="error">Cada componente necesita categoría y una cantidad de 1 o más.</small>
+        <small class="error">Cada componente necesita categoría y una cantidad entera de 1 o más.</small>
       }
       @if (categoriaRepetida()) {
         <small class="error">Una categoría no puede repetirse.</small>

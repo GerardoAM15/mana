@@ -2,7 +2,7 @@ package pe.edu.upeu.mana.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +21,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import pe.edu.upeu.mana.exception.dto.ErrorResponseDTO;
+import tools.jackson.databind.exc.MismatchedInputException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -72,9 +73,55 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.CONFLICT, ex.getMessage(), req);
     }
 
-    @ExceptionHandler({ DatosInvalidosException.class, MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class, MissingServletRequestParameterException.class })
-    ResponseEntity<ErrorResponseDTO> invalido(Exception ex, HttpServletRequest req) {
-        String mensaje = ex instanceof DatosInvalidosException ? ex.getMessage() : "Solicitud invalida: revise campos, tipos y fechas (yyyy-MM-dd)";
+    @ExceptionHandler(DatosInvalidosException.class)
+    ResponseEntity<ErrorResponseDTO> invalido(DatosInvalidosException ex, HttpServletRequest req) {
+        return solicitudInvalida(ex.getMessage(), req);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<ErrorResponseDTO> cuerpoInvalido(HttpMessageNotReadableException ex, HttpServletRequest req) {
+        for (Throwable causa = ex.getCause(); causa != null; causa = causa.getCause()) {
+            if (causa instanceof MismatchedInputException formato) {
+                var campo = new StringBuilder();
+                for (var referencia : formato.getPath()) {
+                    if (referencia.getPropertyName() != null) {
+                        if (!campo.isEmpty()) {
+                            campo.append('.');
+                        }
+                        campo.append(referencia.getPropertyName());
+                    } else if (referencia.getIndex() >= 0) {
+                        campo.append('[').append(referencia.getIndex()).append(']');
+                    }
+                }
+                String nombre = campo.isEmpty() ? "El cuerpo de la solicitud" : "El campo '" + campo + "'";
+                return solicitudInvalida(mensajeTipo(nombre, formato.getTargetType()), req);
+            }
+        }
+        return solicitudInvalida("Cuerpo JSON inválido: revise la sintaxis y envíe un objeto JSON válido", req);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ErrorResponseDTO> parametroInvalido(MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
+        return solicitudInvalida(mensajeTipo("El parámetro '" + ex.getName() + "'", ex.getRequiredType()), req);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    ResponseEntity<ErrorResponseDTO> parametroFaltante(MissingServletRequestParameterException ex, HttpServletRequest req) {
+        return solicitudInvalida("Falta el parámetro obligatorio '" + ex.getParameterName() + "'", req);
+    }
+
+    private String mensajeTipo(String nombre, Class<?> tipo) {
+        if (tipo == Long.class || tipo == long.class || tipo == Integer.class || tipo == int.class
+                || tipo == Short.class || tipo == short.class || tipo == Byte.class || tipo == byte.class) {
+            return nombre + " debe ser un número entero, sin decimales y dentro del rango permitido";
+        }
+        if (tipo == LocalDate.class) {
+            return nombre + " debe ser una fecha válida con formato yyyy-MM-dd";
+        }
+        return nombre + " tiene un tipo o valor inválido";
+    }
+
+    private ResponseEntity<ErrorResponseDTO> solicitudInvalida(String mensaje, HttpServletRequest req) {
         log.warn("Solicitud rechazada | ruta={} | motivo={}", req.getRequestURI(), mensaje);
         return error(HttpStatus.BAD_REQUEST, mensaje, req);
     }

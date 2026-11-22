@@ -5,6 +5,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { AuthService } from '../../../../core/auth/auth.service';
 import { hoy } from '../../../../core/utils/fechas';
 import { erroresDeValidacion, mensajeError } from '../../../../core/utils/http-error';
+import { textoObligatorio } from '../../../../core/utils/validadores';
 import { ConfirmarDialogo } from '../../../../shared/components/confirmar-dialogo/confirmar-dialogo';
 import { DiaNoAtencion } from '../../models/dia-no-atencion.model';
 import { DiaNoAtencionService } from '../../services/dia-no-atencion-service';
@@ -33,7 +34,7 @@ export class DiaNoAtencionList implements OnInit {
   protected readonly filtros = this.fb.group({ desde: [`${hoy().slice(0, 4)}-01-01`], hasta: [`${hoy().slice(0, 4)}-12-31`] });
   protected readonly form = this.fb.group({
     fecha: ['', Validators.required],
-    motivo: ['', [Validators.required, Validators.maxLength(160)]],
+    motivo: ['', [textoObligatorio, Validators.maxLength(160)]],
   });
 
   ngOnInit(): void {
@@ -43,6 +44,7 @@ export class DiaNoAtencionList implements OnInit {
   cargar(): void {
     const { desde, hasta } = this.filtros.getRawValue();
     this.cargando.set(true);
+    this.error.set(null);
     this.service.listar({ desde: desde || null, hasta: hasta || null, localId: null }).subscribe({
       next: dias => {
         this.dias.set(dias.sort((a, b) => a.fecha.localeCompare(b.fecha)));
