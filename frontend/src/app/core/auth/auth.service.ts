@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { CajaEstadoService } from '../services/caja-estado.service';
 import { CatalogoService } from '../services/catalogo-service';
 import {
+  CambiarClaveRequest,
   LoginRequest,
   LoginResponse,
   MensajeResponse,
@@ -36,19 +37,29 @@ export class AuthService {
     this.restaurar();
   }
 
+  readonly debeCambiarClave = computed(() => this.sesion()?.debeCambiarClave === true);
+
   login(datos: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.url}/login`, datos).pipe(
-      tap(r => this.iniciar({
-        token: r.token,
-        usuarioId: r.usuarioId,
-        nombreCompleto: r.nombreCompleto,
-        rol: r.rol,
-        localId: r.localId,
-        localNombre: r.localNombre,
-        permisos: r.permisos,
-        expiraEn: Date.now() + r.expiraEnSegundos * 1000,
-      })),
-    );
+    return this.http.post<LoginResponse>(`${this.url}/login`, datos).pipe(tap(r => this.iniciar(this.aSesion(r))));
+  }
+
+  // El backend invalida las demás sesiones y devuelve un token nuevo, que reemplaza al actual.
+  cambiarClave(datos: CambiarClaveRequest): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.url}/cambiar-clave`, datos).pipe(tap(r => this.iniciar(this.aSesion(r))));
+  }
+
+  private aSesion(r: LoginResponse): Sesion {
+    return {
+      token: r.token,
+      usuarioId: r.usuarioId,
+      nombreCompleto: r.nombreCompleto,
+      rol: r.rol,
+      localId: r.localId,
+      localNombre: r.localNombre,
+      permisos: r.permisos,
+      expiraEn: Date.now() + r.expiraEnSegundos * 1000,
+      ...(r.debeCambiarClave ? { debeCambiarClave: true } : {}),
+    };
   }
 
   recuperar(datos: RecuperarClaveRequest): Observable<MensajeResponse> {

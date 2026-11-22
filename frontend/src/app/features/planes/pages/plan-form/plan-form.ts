@@ -4,6 +4,7 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { CatalogoService } from '../../../../core/services/catalogo-service';
 import { erroresDeValidacion, mensajeError } from '../../../../core/utils/http-error';
+import { textoObligatorio } from '../../../../core/utils/validadores';
 import { PeriodoPlan, PlanRequest } from '../../models/plan.model';
 import { PlanService } from '../../services/plan-service';
 
@@ -26,7 +27,7 @@ export class PlanForm implements OnInit {
   protected readonly erroresServidor = signal<Record<string, string>>({});
   protected readonly intento = signal(false);
   protected readonly form = this.fb.group({
-    nombre: ['', [Validators.required, Validators.maxLength(120)]],
+    nombre: ['', [textoObligatorio, Validators.maxLength(120)]],
     periodo: this.fb.control<PeriodoPlan>('SEMANAL', Validators.required),
     activo: [true],
   });

@@ -130,7 +130,8 @@ class PensionesOracleIntegrationTest {
         assertEquals(contrato.getId(),contratos.listar(null,EstadoContrato.ACTIVO,null,null,null,0,1,"id","asc").getContenido().getFirst().getId());
         assertTrue(clientesService.listar(null,0,1,"dni","asc").getContenido().size()<=1);
         assertEquals(1L,cajas.listar(null,null,null,null,0,1,"apertura","desc").getTotalElementos());
-        assertEquals(0L,ventasService.listar(null,null,null,null,null,0,1,"total","desc").getTotalElementos());
+        assertEquals(0L,ventasService.listar(null,null,null,null,null,false,0,1,"total","desc").getTotalElementos());
+        assertEquals(0L,ventasService.listar(null,null,null,null,null,true,0,1,"total","desc").getTotalElementos());
         assertEquals(0L,consumos.listar(null,null,null,null,null,0,1,"fecha","asc").getTotalElementos());
         gastos.crear(new GastoDiarioRequestDTO(LocalDate.now(clock),new BigDecimal("1.00"),"Prueba de paginación",true));
         assertEquals(1L,gastos.listar(null,null,null,0,1,"monto","desc").getTotalElementos());

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { claveGuard } from './core/guards/clave.guard';
 import { invitadoGuard } from './core/guards/invitado.guard';
 import { permisoGuard } from './core/guards/permiso.guard';
 import { servidorGuard } from './core/guards/servidor.guard';
@@ -31,9 +32,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/pages/restablecer-clave/restablecer-clave').then(m => m.RestablecerClave),
   },
   {
+    path: 'cambiar-clave',
+    title: 'Cambiar contraseña',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/auth/pages/cambiar-clave/cambiar-clave').then(m => m.CambiarClave),
+  },
+  {
     path: '',
     component: MainLayout,
-    canActivate: [servidorGuard, authGuard],
+    // claveGuard: con una contraseña que ya no cumple la política no se entra hasta cambiarla.
+    canActivate: [servidorGuard, authGuard, claveGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
       {
@@ -130,6 +138,12 @@ export const routes: Routes = [
         canActivate: [permisoGuard],
         data: { permiso: 'LOCAL_GESTIONAR' },
         loadChildren: () => import('./features/locales/locales.routes').then(m => m.LOCALES_ROUTES),
+      },
+      {
+        path: 'auditoria',
+        canActivate: [permisoGuard],
+        data: { permiso: 'AUDITORIA_VER' },
+        loadChildren: () => import('./features/auditoria/auditoria.routes').then(m => m.AUDITORIA_ROUTES),
       },
       {
         path: 'acceso-denegado',

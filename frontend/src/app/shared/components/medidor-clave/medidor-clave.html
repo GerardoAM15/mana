@@ -1,0 +1,14 @@
+@if (nivel() !== 'vacia') {
+  <div class="medidor" [class]="nivel()" aria-live="polite">
+    <div class="barra" role="meter" aria-label="Fuerza de la contraseña" aria-valuemin="0" aria-valuemax="3"
+         [attr.aria-valuenow]="nivel() === 'debil' ? 1 : nivel() === 'media' ? 2 : 3" [attr.aria-valuetext]="etiqueta()">
+      <span></span><span></span><span></span>
+    </div>
+    <small class="etiqueta">Contraseña: {{ etiqueta() }}</small>
+    @if (faltantes().length) {
+      <ul class="faltantes">
+        @for (f of faltantes(); track f) { <li>{{ f }}</li> }
+      </ul>
+    }
+  </div>
+}

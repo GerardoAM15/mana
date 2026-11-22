@@ -4,7 +4,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { mensajeError } from '../../../../core/utils/http-error';
 import { sumar } from '../../../../core/utils/numeros';
-import { Barras, FilaBarras, Serie } from '../../components/barras/barras';
+import { FilaGrafico, Grafico, Serie } from '../../components/grafico/grafico';
 import { FiltrosReporte, ValoresFiltro } from '../../components/filtros-reporte/filtros-reporte';
 import { IngresoPeriodo } from '../../models/reporte.model';
 import { ReporteService } from '../../services/reporte-service';
@@ -13,7 +13,7 @@ import { etiquetaPeriodo } from '../../utils/periodos';
 // Cobros netos de contratos (cobros − devoluciones + recargos) y ventas pagadas netas, por mes.
 @Component({
   selector: 'app-reporte-ingresos',
-  imports: [RouterLink, CurrencyPipe, Barras, FiltrosReporte],
+  imports: [RouterLink, CurrencyPipe, Grafico, FiltrosReporte],
   templateUrl: './reporte-ingresos.html',
   styleUrl: './reporte-ingresos.css',
 })
@@ -30,7 +30,7 @@ export class ReporteIngresos {
     { nombre: 'Pensiones (contratos)', tono: 'primario' },
     { nombre: 'Ventas directas', tono: 'acento' },
   ];
-  protected readonly filas = computed<FilaBarras[]>(() =>
+  protected readonly filas = computed<FilaGrafico[]>(() =>
     this.datos().map(d => ({ etiqueta: etiquetaPeriodo(d.periodo), valores: [d.contratos, d.ventas] })),
   );
   protected readonly totales = computed(() => ({

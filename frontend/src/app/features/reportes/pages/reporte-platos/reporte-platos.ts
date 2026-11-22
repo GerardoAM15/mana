@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CatalogoService } from '../../../../core/services/catalogo-service';
 import { mensajeError } from '../../../../core/utils/http-error';
-import { Barras, FilaBarras, Serie } from '../../components/barras/barras';
+import { FilaGrafico, Grafico, Serie } from '../../components/grafico/grafico';
 import { FiltrosReporte, ValoresFiltro } from '../../components/filtros-reporte/filtros-reporte';
 import { PlatoConsumido } from '../../models/reporte.model';
 import { ReporteService } from '../../services/reporte-service';
@@ -12,7 +12,7 @@ import { etiquetaPeriodo } from '../../utils/periodos';
 // Top de platos en consumos de pensionistas no anulados.
 @Component({
   selector: 'app-reporte-platos',
-  imports: [RouterLink, Barras, FiltrosReporte],
+  imports: [RouterLink, Grafico, FiltrosReporte],
   templateUrl: './reporte-platos.html',
   styleUrl: './reporte-platos.css',
 })
@@ -30,7 +30,7 @@ export class ReportePlatos {
     [...this.datos()].sort((a, b) => b.cantidad - a.cantidad || a.platoNombre.localeCompare(b.platoNombre)),
   );
   protected readonly series: Serie[] = [{ nombre: 'Veces servido', tono: 'primario' }];
-  protected readonly filas = computed<FilaBarras[]>(() =>
+  protected readonly filas = computed<FilaGrafico[]>(() =>
     this.ordenados().slice(0, 15).map(p => ({
       etiqueta: `${p.platoNombre} (${this.catalogos.nombreServicio(p.servicio)})`,
       valores: [p.cantidad],

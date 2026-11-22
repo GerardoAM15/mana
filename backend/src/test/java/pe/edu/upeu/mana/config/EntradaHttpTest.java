@@ -75,7 +75,8 @@ class EntradaHttpTest {
                                  "lineas":[{"tipo":"BEBIDA","bebidaId":1,"cantidad":%s}],"pagos":[]}
                                 """.formatted(cantidad)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400));
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("El campo 'lineas[0].cantidad' debe ser un número entero, sin decimales y dentro del rango permitido"));
 
         verifyNoInteractions(ventas);
     }
@@ -87,7 +88,8 @@ class EntradaHttpTest {
                         .content("""
                                 {"clienteId":%s,"planId":1,"fechaInicio":"2026-11-19","servicios":["A"]}
                                 """.formatted(clienteId)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("El campo 'clienteId' debe ser un número entero, sin decimales y dentro del rango permitido"));
 
         verifyNoInteractions(contratos);
     }
@@ -137,7 +139,8 @@ class EntradaHttpTest {
     })
     void rechazaFechaInexistenteEnCualquierIdioma(String fecha, String idioma) throws Exception {
         mvc.perform(get("/api/v1/ventas").param("desde", fecha).header("Accept-Language", idioma))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("El parámetro 'desde' debe ser una fecha válida con formato yyyy-MM-dd"));
 
         verifyNoInteractions(ventas);
     }
@@ -152,4 +155,49 @@ class EntradaHttpTest {
 
         verify(reportes).ingresos(LocalDate.of(2024, 2, 29), LocalDate.of(2024, 3, 1), null);
     }
+
+    @Test
+    void fechaInvalidaEnJsonIdentificaElCampo() throws Exception {
+        mvc.perform(post("/api/v1/contratos/simular").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"clienteId":1,"planId":1,"fechaInicio":"2026-02-30","servicios":["A"]}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("El campo 'fechaInicio' debe ser una fecha válida con formato yyyy-MM-dd"));
+
+        verifyNoInteractions(contratos);
+    }
+
+    @Test
+    void jsonMalFormadoNoSePresentaComoErrorDeFecha() throws Exception {
+        mvc.perform(post("/api/v1/ventas").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"servicio\":\"A\",}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Cuerpo JSON inválido: revise la sintaxis y envíe un objeto JSON válido"));
+
+        verifyNoInteractions(ventas);
+    }
+
+    @Test
+    void tipoDeLineaInvalidoNoSePresentaComoErrorDeFecha() throws Exception {
+        mvc.perform(post("/api/v1/ventas").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"servicio":"A","paraLlevar":false,
+                                 "lineas":[{"tipo":"DESCONOCIDO","bebidaId":1,"cantidad":1}],"pagos":[]}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("El campo 'lineas[0].tipo' tiene un tipo o valor inválido"));
+
+        verifyNoInteractions(ventas);
+    }
+
+    @Test
+    void identificadorDecimalEnRutaIndicaQueSeEsperaUnEntero() throws Exception {
+        mvc.perform(get("/api/v1/contratos/1.5"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("El parámetro 'id' debe ser un número entero, sin decimales y dentro del rango permitido"));
+
+        verifyNoInteractions(contratos);
+    }
+
 }

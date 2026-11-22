@@ -6,7 +6,7 @@ import { RouterLink } from '@angular/router';
 import { CatalogoService } from '../../../../core/services/catalogo-service';
 import { diasEntre, hoy } from '../../../../core/utils/fechas';
 import { mensajeError } from '../../../../core/utils/http-error';
-import { Barras, FilaBarras, Serie } from '../../components/barras/barras';
+import { FilaGrafico, Grafico, Serie } from '../../components/grafico/grafico';
 import { ContratoPorVencer } from '../../models/reporte.model';
 import { ReporteService } from '../../services/reporte-service';
 
@@ -24,7 +24,7 @@ interface ContratoAgrupado {
 // Contratos activos que vencen en los próximos N días (por defecto 3), con su saldo por servicio.
 @Component({
   selector: 'app-reporte-por-vencer',
-  imports: [ReactiveFormsModule, RouterLink, DatePipe, Barras],
+  imports: [ReactiveFormsModule, RouterLink, DatePipe, Grafico],
   templateUrl: './reporte-por-vencer.html',
   styleUrl: './reporte-por-vencer.css',
 })
@@ -57,7 +57,7 @@ export class ReportePorVencer implements OnInit {
   });
   protected readonly racionesPendientes = computed(() => this.contratos().reduce((t, c) => t + c.saldoTotal, 0));
   protected readonly series: Serie[] = [{ nombre: 'Raciones por consumir', tono: 'acento' }];
-  protected readonly filas = computed<FilaBarras[]>(() =>
+  protected readonly filas = computed<FilaGrafico[]>(() =>
     this.contratos().map(c => ({ etiqueta: `${c.numero} · ${c.clienteNombre}`, valores: [c.saldoTotal] })),
   );
 
