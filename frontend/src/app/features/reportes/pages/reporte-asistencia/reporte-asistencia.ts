@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { CatalogoService } from '../../../../core/services/catalogo-service';
 import { mensajeError } from '../../../../core/utils/http-error';
-import { Barras, FilaBarras, Serie } from '../../components/barras/barras';
+import { FilaGrafico, Grafico, Serie } from '../../components/grafico/grafico';
 import { FiltrosReporte, ValoresFiltro } from '../../components/filtros-reporte/filtros-reporte';
 import { AsistenciaDiaria } from '../../models/reporte.model';
 import { ReporteService } from '../../services/reporte-service';
@@ -21,7 +21,7 @@ interface FilaDia {
 // Consumos de pensionistas (no anulados) por día y servicio.
 @Component({
   selector: 'app-reporte-asistencia',
-  imports: [RouterLink, Barras, FiltrosReporte],
+  imports: [RouterLink, Grafico, FiltrosReporte],
   templateUrl: './reporte-asistencia.html',
   styleUrl: './reporte-asistencia.css',
 })
@@ -56,7 +56,7 @@ export class ReporteAsistencia {
   protected readonly series = computed<Serie[]>(() =>
     SERVICIOS.map(s => ({ nombre: this.catalogos.nombreServicio(s), tono: TONOS[s] })),
   );
-  protected readonly filas = computed<FilaBarras[]>(() =>
+  protected readonly filas = computed<FilaGrafico[]>(() =>
     this.dias().map(d => ({ etiqueta: etiquetaPeriodo(d.fecha), valores: SERVICIOS.map(s => d.porServicio[s] ?? 0) })),
   );
 
