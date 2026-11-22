@@ -31,7 +31,8 @@ export class Servidor {
     const url = normalizarServidor(this.form.getRawValue().url);
     this.probando.set(true);
     this.error.set(null);
-    this.http.get(`${url}/api/health`).subscribe({
+    // /api/health responde texto plano, no JSON.
+    this.http.get(`${url}/api/health`, { responseType: 'text' }).subscribe({
       next: () => {
         guardarServidor(url);
         RECARGAR.ir('/login');

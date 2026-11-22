@@ -90,7 +90,9 @@ describe('Servidor', () => {
     const ir = vi.spyOn(RECARGAR, 'ir').mockImplementation(() => undefined);
     const { el, http } = await crear();
     escribir(el, '192.168.1.10:8080');
-    http.expectOne('http://192.168.1.10:8080/api/health').flush({ status: 'UP' });
+    const req = http.expectOne('http://192.168.1.10:8080/api/health');
+    expect(req.request.responseType).toBe('text');
+    req.flush('Backend funcionando correctamente');
     expect(localStorage.getItem(CLAVE_SERVIDOR)).toBe('http://192.168.1.10:8080');
     expect(ir).toHaveBeenCalledWith('/login');
   });
