@@ -150,6 +150,19 @@ class ContratoServiceImplTest {
     }
 
     @Test
+    void renovacionDesdeUnaCajaDeOtroLocalEsRechazada() {
+        service = crearServicio(Clock.fixed(Instant.parse("2026-11-05T15:00:00Z"), ZoneId.of("America/Lima")));
+        caja.setLocalId(2L);
+        contratoBase();
+        var solicitud = new RenovarContratoRequestDTO(2L, List.of("D"), pagos());
+
+        var error = assertThrows(ReglaNegocioException.class, () -> service.renovar(10L, solicitud));
+
+        assertEquals("Debe renovar en el local del contrato", error.getMessage());
+        verify(contratos, never()).saveAndFlush(any());
+    }
+
+    @Test
     void renovacionFueraDeLosUltimosTresDiasEsRechazada() {
         contratoBase();
         assertThrows(ReglaNegocioException.class, () -> service.renovar(10L, new RenovarContratoRequestDTO(2L, List.of("D"), pagos())));
