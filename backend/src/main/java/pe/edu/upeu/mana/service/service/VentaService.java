@@ -21,7 +21,7 @@ public interface VentaService {
 
     VentaResponseDTO buscar(Long id);
 
-    PaginaResponseDTO<VentaResponseDTO> listar(LocalDate desde, LocalDate hasta, EstadoVenta estado, Long cajaId, Long localId, int pagina, int tamanio, String ordenarPor, String direccion);
+    PaginaResponseDTO<VentaResponseDTO> listar(LocalDate desde, LocalDate hasta, EstadoVenta estado, Long cajaId, Long localId, boolean historial, int pagina, int tamanio, String ordenarPor, String direccion);
 
     PosCatalogoResponseDTO catalogo(String servicio);
 }

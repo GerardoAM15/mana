@@ -39,6 +39,7 @@ export class VentaService {
     if (filtro.estado) params = params.set('estado', filtro.estado);
     if (filtro.cajaId) params = params.set('cajaId', filtro.cajaId);
     if (filtro.localId) params = params.set('localId', filtro.localId);
+    if (filtro.historial) params = params.set('historial', true);
 
     return this.http.get<PaginaResponse<Venta>>(this.url, { params });
   }

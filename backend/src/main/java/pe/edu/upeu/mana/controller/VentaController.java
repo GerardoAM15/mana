@@ -45,7 +45,7 @@ public class VentaController {
     }
 
     @GetMapping
-    public PaginaResponseDTO<VentaResponseDTO> listar(@RequestParam(required = false) LocalDate desde, @RequestParam(required = false) LocalDate hasta, @RequestParam(required = false) EstadoVenta estado, @RequestParam(required = false) Long cajaId, @RequestParam(required = false) Long localId, @RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanio, @RequestParam(defaultValue = "id") String ordenarPor, @RequestParam(defaultValue = "desc") String direccion) {
-        return service.listar(desde, hasta, estado, cajaId, localId, pagina, tamanio, ordenarPor, direccion);
+    public PaginaResponseDTO<VentaResponseDTO> listar(@RequestParam(required = false) LocalDate desde, @RequestParam(required = false) LocalDate hasta, @RequestParam(required = false) EstadoVenta estado, @RequestParam(required = false) Long cajaId, @RequestParam(required = false) Long localId, @RequestParam(defaultValue = "false") boolean historial, @RequestParam(defaultValue = "0") int pagina, @RequestParam(defaultValue = "20") int tamanio, @RequestParam(defaultValue = "id") String ordenarPor, @RequestParam(defaultValue = "desc") String direccion) {
+        return service.listar(desde, hasta, estado, cajaId, localId, historial, pagina, tamanio, ordenarPor, direccion);
     }
 }

@@ -65,6 +65,16 @@ class VentaServiceImplTest {
     VentaServiceImpl service;
 
     @Test
+    void historialPideAlRepositorioSoloPagadasYAnuladas() {
+        when(contexto.localId(null)).thenReturn(1L);
+        when(ventas.filtrar(eq(1L), isNull(), isNull(), any(), isNull(), anyBoolean(), any())).thenReturn(org.springframework.data.domain.Page.empty());
+        service.listar(null, null, null, null, null, true, 0, 20, "id", "desc");
+        verify(ventas).filtrar(eq(1L), isNull(), isNull(), isNull(), isNull(), eq(true), any());
+        service.listar(null, null, EstadoVenta.PENDIENTE, null, null, false, 0, 20, "id", "desc");
+        verify(ventas).filtrar(eq(1L), isNull(), isNull(), eq(EstadoVenta.PENDIENTE), isNull(), eq(false), any());
+    }
+
+    @Test
     void cenaSinSueltosRespondeReglaDeNegocio() {
         var caja = new SesionCaja();
         caja.setLocalId(1L);

@@ -335,14 +335,14 @@ public class VentaServiceImpl implements VentaService {
     }
 
     @Transactional(readOnly = true)
-    public PaginaResponseDTO<VentaResponseDTO> listar(LocalDate desde, LocalDate hasta, EstadoVenta estado, Long cajaId, Long localId, int pagina, int tamanio, String ordenarPor, String direccion) {
+    public PaginaResponseDTO<VentaResponseDTO> listar(LocalDate desde, LocalDate hasta, EstadoVenta estado, Long cajaId, Long localId, boolean historial, int pagina, int tamanio, String ordenarPor, String direccion) {
         long inicio = System.nanoTime();
         log.debug("Inicio VentaServiceImpl.listar");
         try {
             var pageable = PaginacionUtil.construir(pagina, tamanio, ordenarPor, direccion, CAMPOS_ORDENABLES, "id");
             if (desde != null && hasta != null && desde.isAfter(hasta))
                 throw new DatosInvalidosException("Rango de fechas inválido");
-            return PaginaResponseDTO.de(ventas.filtrar(contexto.localId(localId), desde == null ? null : desde.atStartOfDay(), hasta == null ? null : hasta.plusDays(1).atStartOfDay(), estado, cajaId, pageable).map(this::respuesta));
+            return PaginaResponseDTO.de(ventas.filtrar(contexto.localId(localId), desde == null ? null : desde.atStartOfDay(), hasta == null ? null : hasta.plusDays(1).atStartOfDay(), estado, cajaId, historial, pageable).map(this::respuesta));
         } finally {
             log.debug("Fin VentaServiceImpl.listar | duracionMs={}", (System.nanoTime() - inicio) / 1_000_000);
         }
