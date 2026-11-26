@@ -39,11 +39,11 @@ export class GastoList implements OnInit {
     this.buscar(0);
   }
 
-  buscar(pagina = 0): void {
+  buscar(pagina = 0, tamanio = this.resultado()?.tamanio ?? TAMANIO): void {
     const filtro = this.filtro();
     this.cargando.set(true);
     this.error.set(null);
-    this.gastoService.buscar(filtro, pagina, TAMANIO).subscribe({
+    this.gastoService.buscar(filtro, pagina, tamanio).subscribe({
       next: resultado => {
         this.resultado.set(resultado);
         this.cargando.set(false);

@@ -51,12 +51,12 @@ export class MovimientoList implements OnInit {
     this.buscar(0);
   }
 
-  buscar(pagina = 0): void {
+  buscar(pagina = 0, tamanio = this.resultado()?.tamanio ?? TAMANIO): void {
     const v = this.filtros.getRawValue();
     this.cargando.set(true);
     this.error.set(null);
     this.stockService
-      .movimientos({ bebidaId: v.bebidaId, desde: v.desde || null, hasta: v.hasta || null, localId: null }, pagina, TAMANIO)
+      .movimientos({ bebidaId: v.bebidaId, desde: v.desde || null, hasta: v.hasta || null, localId: null }, pagina, tamanio)
       .subscribe({
         next: resultado => {
           this.resultado.set(resultado);

@@ -44,12 +44,12 @@ export class ComprobanteList implements OnInit {
     this.buscar(0);
   }
 
-  buscar(pagina = 0): void {
+  buscar(pagina = 0, tamanio = this.resultado()?.tamanio ?? TAMANIO): void {
     const v = this.filtros.getRawValue();
     this.cargando.set(true);
     this.error.set(null);
     this.service
-      .buscar({ desde: v.desde || null, hasta: v.hasta || null, tipo: v.tipo || null, estado: v.estado || null }, pagina, TAMANIO)
+      .buscar({ desde: v.desde || null, hasta: v.hasta || null, tipo: v.tipo || null, estado: v.estado || null }, pagina, tamanio)
       .subscribe({
         next: r => {
           this.resultado.set(r);

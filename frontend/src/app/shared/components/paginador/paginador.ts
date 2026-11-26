@@ -11,6 +11,15 @@ export class Paginador {
   readonly pagina = input.required<PaginaResponse<unknown>>();
   readonly deshabilitado = input(false);
   readonly cambiar = output<number>();
+  readonly cambiarTamanio = output<number>();
+  readonly tamanios = [5, 10, 20];
+
+  seleccionarTamanio(selector: HTMLSelectElement): void {
+    const tamanio = Number(selector.value);
+    // El selector refleja el tamaño confirmado por la API.
+    selector.value = String(this.pagina().tamanio);
+    this.cambiarTamanio.emit(tamanio);
+  }
 
   anterior(): void {
     const actual = this.pagina().pagina;

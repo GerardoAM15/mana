@@ -40,10 +40,10 @@ export class ClienteList implements OnInit {
     this.buscar(0);
   }
 
-  buscar(pagina = this.resultado()?.pagina ?? 0): void {
+  buscar(pagina = this.resultado()?.pagina ?? 0, tamanio = this.resultado()?.tamanio ?? TAMANIO): void {
     this.cargando.set(true);
     this.error.set(null);
-    this.clienteService.buscar(this.busqueda.value, pagina, TAMANIO).subscribe({
+    this.clienteService.buscar(this.busqueda.value, pagina, tamanio).subscribe({
       next: resultado => {
         this.resultado.set(resultado);
         this.cargando.set(false);
