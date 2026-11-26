@@ -31,7 +31,7 @@ class MenuAtencionTest {
     final LocalDate viernes=LocalDate.of(2026,11,6);
     private MenuServiceImpl preparar() {
         when(contexto.localId(null)).thenReturn(1L);
-        return new MenuServiceImpl(menus,relaciones,platos,servicios,contexto,mapper,new ValidadorAtencion(servicios,dias,cierres),reglas,componentes);
+        return new MenuServiceImpl(menus,relaciones,platos,servicios,contexto,mapper,new ValidadorAtencion(servicios,dias,cierres),reglas,componentes,mock(LocalRepository.class));
     }
     @Test void noPermiteGuardarCenaEnViernes() {
         var service=preparar();when(servicios.findById("C")).thenReturn(Optional.of(new Servicio()));

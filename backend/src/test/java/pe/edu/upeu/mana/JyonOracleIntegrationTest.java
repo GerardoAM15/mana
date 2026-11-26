@@ -35,6 +35,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 @EnabledIfEnvironmentVariable(named="MANA_ORACLE_TEST", matches="true")
 @Transactional
 class JyonOracleIntegrationTest {
+    @MockitoBean pe.edu.upeu.mana.scheduler.ContratoScheduler tareasContratos;
+    @Autowired ProgramacionMenuRepository programaciones;
     @Autowired WebApplicationContext context;
     @Autowired JsonMapper json;
     @Autowired LocalRepository locales;
@@ -68,6 +70,12 @@ class JyonOracleIntegrationTest {
         return mvc.perform(req);
     }
     JsonNode ok(String method,String path,Object body,int status)throws Exception{
+        if (path.equals("/api/v1/menus/copiar-a-cena") && body instanceof Map<?,?> datos) {
+            var actualizado = new HashMap<String,Object>();datos.forEach((k,v)->actualizado.put(k.toString(),v));
+            var fecha = LocalDate.parse(datos.get("fecha").toString());
+            actualizado.put("version",programaciones.findByLocalIdAndFechaAndServicio(localId,fecha,"C").map(ProgramacionMenu::getVersion).orElse(-1L));
+            body=actualizado;
+        }
         var r=request(method,path,body,permisos).andReturn().getResponse();
         assertEquals(status,r.getStatus(),path+" => "+r.getContentAsString());
         return r.getContentAsString().isBlank()?null:json.readTree(r.getContentAsString());
@@ -80,7 +88,7 @@ class JyonOracleIntegrationTest {
             var r=new ReglaCobro();r.setNombre(prefijo+"Composición");r.setServicio(s);r.setPrecioCombo(new BigDecimal("12.00"));r.setRecargoLlevar(BigDecimal.ZERO);reglas.saveAndFlush(r);
             var c=new ComponenteRegla();c.setReglaId(r.getId());c.setCategoria(categoria);c.setCantidad(1L);componentes.saveAndFlush(c);
         }
-        return Map.of("fecha",fecha.toString(),"servicio",s,"platoIds",List.of(ids));
+        return Map.of("fecha",fecha.toString(),"servicio",s,"platoIds",List.of(ids),"version",programaciones.findByLocalIdAndFechaAndServicio(localId,fecha,s).map(ProgramacionMenu::getVersion).orElse(-1L));
     }
     Map<String,Object> regla(boolean activo){return Map.of("nombre",prefijo,"servicio",servicio,"precioCombo",12.50,"recargoLlevar",2,"activo",activo,"componentes",List.of(Map.of("categoria",categoria,"cantidad",1)));}
 
@@ -160,11 +168,11 @@ class JyonOracleIntegrationTest {
     @Test void cu12NoClonaSobreLaMismaFecha()throws Exception{ok("POST","/api/v1/menus/clonar",Map.of("fechaOrigen",lunes.toString(),"fechaDestino",lunes.toString()),400);}
     @Test void cu12ClonarSinOrigenDevuelve404()throws Exception{ok("POST","/api/v1/menus/clonar",Map.of("fechaOrigen",lunes.toString(),"fechaDestino",lunes.plusDays(1).toString()),404);}
     @Test void cu12CopiarACenaConservaExistentesYNoDuplicaSegundos()throws Exception{
-        long segundo=crearPlato("Segundo","SEGUNDO"),entrada=crearPlato("Entrada","ENTRADA"),otro=crearPlato("Otro","SEGUNDO");
-        ok("PUT","/api/v1/menus",menu(lunes,"A",segundo,entrada),200);ok("PUT","/api/v1/menus",menu(lunes,"C",otro),200);
-        var copia=ok("POST","/api/v1/menus/copiar-a-cena",Map.of("fecha",lunes.toString()),200);assertEquals(2,copia.get("platos").size());
-        var repetida=ok("POST","/api/v1/menus/copiar-a-cena",Map.of("fecha",lunes.toString()),200);assertEquals(2,repetida.get("platos").size());
-        var ids=new HashSet<Long>();repetida.get("platos").forEach(p->ids.add(p.get("platoId").asLong()));assertEquals(Set.of(segundo,otro),ids);
+        long segundo=crearPlato("Segundo","SEGUNDO"),entrada=crearPlato("Entrada","ENTRADA"),otro=crearPlato("Otro","SEGUNDO"),refresco=crearPlato("Refresco","REFRESCO");
+        ok("PUT","/api/v1/menus",menu(lunes,"A",segundo,entrada,refresco),200);ok("PUT","/api/v1/menus",menu(lunes,"C",otro,refresco),200);
+        var copia=ok("POST","/api/v1/menus/copiar-a-cena",Map.of("fecha",lunes.toString()),200);assertEquals(3,copia.get("platos").size());
+        var repetida=ok("POST","/api/v1/menus/copiar-a-cena",Map.of("fecha",lunes.toString()),200);assertEquals(3,repetida.get("platos").size());
+        var ids=new HashSet<Long>();repetida.get("platos").forEach(p->ids.add(p.get("platoId").asLong()));assertEquals(Set.of(segundo,otro,refresco),ids);
     }
     @Test void cu13AltaComposicionYEdicion()throws Exception{
         var r=ok("POST","/api/v1/reglas-cobro",regla(true),201);assertEquals(1,r.get("componentes").size());

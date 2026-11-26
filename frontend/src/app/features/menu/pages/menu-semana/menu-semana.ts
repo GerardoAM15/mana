@@ -28,6 +28,7 @@ type CodigoServicio = 'D' | 'A' | 'C';
 interface Celda {
   fecha: string;
   servicio: string;
+  version?: number;
 }
 
 interface GrupoBanco {
@@ -78,6 +79,12 @@ export class MenuSemana implements OnInit {
     const celda = this.editando();
     return celda ? this.reglas().find(r => r.servicio === celda.servicio && r.activo)?.componentes.map(c => c.categoria) ?? [] : [];
   });
+  protected readonly categoriasFaltantes = computed(() => this.categoriasDelTurno().filter(categoria =>
+    !this.platos().some(p => p.activo && p.categoria === categoria && this.elegidos().has(p.id))));
+  protected readonly versionesClonado = signal<Record<string, number> | null>(null);
+  protected readonly versionCena = signal<number | null>(null);
+  private consultaClonado = 0;
+  private consultaCena = 0;
   protected readonly seleccionFueraDelTurno = computed(() => {
     const permitidas = new Set(this.categoriasDelTurno());
     return [...this.elegidos()].some(id => !this.platos().some(p => p.id === id && p.activo && permitidas.has(p.categoria)));
@@ -190,7 +197,7 @@ export class MenuSemana implements OnInit {
 
   abrirEditor(fecha: string, servicio: string): void {
     if (!this.gestiona || !this.atiende(fecha, servicio)) return;
-    this.editando.set({ fecha, servicio });
+    this.editando.set({ fecha, servicio, version: this.menu(fecha, servicio)?.version ?? -1 });
     this.elegidos.set(new Set(this.menu(fecha, servicio)?.platos.map(p => p.platoId) ?? []));
     this.errorModal.set(null);
     if (this.categoriasDelTurno().length === 0) {
@@ -232,8 +239,12 @@ export class MenuSemana implements OnInit {
       this.errorModal.set('Retire los platos inactivos o que no corresponden a las categorías de este turno.');
       return;
     }
+    if (this.categoriasFaltantes().length > 0) {
+      this.errorModal.set('Complete la programación: seleccione al menos un plato de cada categoría del turno.');
+      return;
+    }
     this.ejecutar(
-      this.menuService.guardar({ fecha: celda.fecha, servicio: celda.servicio, platoIds: [...this.elegidos()] }),
+      this.menuService.guardar({ fecha: celda.fecha, servicio: celda.servicio, platoIds: [...this.elegidos()], version: celda.version ?? -1 }),
       () => this.editando.set(null),
       'Menú guardado.',
     );
@@ -244,6 +255,29 @@ export class MenuSemana implements OnInit {
     this.formClonar.reset({ fechaOrigen: origen, fechaDestino: sumarDias(origen, 1), D: true, A: true, C: true });
     this.errorModal.set(null);
     this.clonando.set(true);
+    this.cargarDestinoClonado();
+  }
+
+  cargarDestinoClonado(): void {
+    const consulta = ++this.consultaClonado;
+    const fecha = this.formClonar.controls.fechaDestino.value;
+    this.versionesClonado.set(null);
+    if (!fecha) return;
+    this.menuService.listar({ desde: fecha, hasta: fecha, servicio: null, localId: null }).subscribe({
+      next: menus => { if (consulta === this.consultaClonado) this.versionesClonado.set(Object.fromEntries(menus.map(m => [m.servicio, m.version]))); },
+      error: (err: HttpErrorResponse) => { if (consulta === this.consultaClonado) this.errorModal.set(mensajeError(err)); },
+    });
+  }
+
+  cargarDestinoCena(): void {
+    const consulta = ++this.consultaCena;
+    const fecha = this.formCopiar.controls.fecha.value;
+    this.versionCena.set(null);
+    if (!fecha) return;
+    this.menuService.listar({ desde: fecha, hasta: fecha, servicio: 'C', localId: null }).subscribe({
+      next: menus => { if (consulta === this.consultaCena) this.versionCena.set(menus[0]?.version ?? -1); },
+      error: (err: HttpErrorResponse) => { if (consulta === this.consultaCena) this.errorModal.set(mensajeError(err)); },
+    });
   }
 
   // Motivo por el que un servicio no se puede clonar a la fecha (null si se puede).
@@ -255,6 +289,7 @@ export class MenuSemana implements OnInit {
   }
 
   clonar(): void {
+    if (this.versionesClonado() === null) { this.errorModal.set('Espere a que se cargue la programación destino.'); return; }
     const v = this.formClonar.getRawValue();
     const servicios = SERVICIOS.filter(s => v[s as CodigoServicio] && !this.motivoNoAtiende(v.fechaDestino, s));
     if (this.formClonar.invalid || servicios.length === 0) {
@@ -266,7 +301,7 @@ export class MenuSemana implements OnInit {
       return;
     }
     this.ejecutar(
-      this.menuService.clonar({ fechaOrigen: v.fechaOrigen, fechaDestino: v.fechaDestino, servicios }),
+      this.menuService.clonar({ fechaOrigen: v.fechaOrigen, fechaDestino: v.fechaDestino, servicios, versionesDestino: this.versionesClonado()! }),
       () => this.clonando.set(false),
       // El backend puede omitir servicios: se compara lo pedido con lo devuelto.
       clonados => {
@@ -284,12 +319,14 @@ export class MenuSemana implements OnInit {
     this.formCopiar.reset({ fecha: fecha ?? this.hoy });
     this.errorModal.set(null);
     this.copiando.set(true);
+    this.cargarDestinoCena();
   }
 
   copiarACena(): void {
+    if (this.versionCena() === null) { this.errorModal.set('Espere a que se cargue la programación de cena.'); return; }
     if (this.formCopiar.invalid || this.motivoSinCena()) return;
     this.ejecutar(
-      this.menuService.copiarACena({ fecha: this.formCopiar.getRawValue().fecha }),
+      this.menuService.copiarACena({ fecha: this.formCopiar.getRawValue().fecha, version: this.versionCena()! }),
       () => this.copiando.set(false),
       'Segundos del almuerzo copiados a la cena.',
     );

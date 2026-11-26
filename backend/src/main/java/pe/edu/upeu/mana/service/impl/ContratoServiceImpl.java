@@ -79,7 +79,9 @@ public class ContratoServiceImpl implements ContratoService {
 
     private final Clock clock;
 
-    public ContratoServiceImpl(ContratoRepository contratos, ClienteRepository clientes, TipoPlanRepository planes, PlanServicioRepository planServicios, ServicioRepository servicios, ServicioDiaAtencionRepository dias, DiaNoAtencionRepository cierres, TarifaServicioRepository tarifas, DetalleContratoRepository detalles, PagoContratoRepository pagos, ConsumoRepository consumos, ContextoLocalService contexto, CajaService cajas, CalculadoraRaciones calculadora, CorrelativoService correlativos, ValidadorPagos validadorPagos, EstadoContratoActual estados, ConsumoService consultaConsumos, ContratoMapper mapper, Clock clock, ReservaComprobanteService comprobantes, pe.edu.upeu.mana.service.service.AuditoriaService auditoria) {
+    private final CompensacionesRacion compensaciones;
+
+    public ContratoServiceImpl(ContratoRepository contratos, ClienteRepository clientes, TipoPlanRepository planes, PlanServicioRepository planServicios, ServicioRepository servicios, ServicioDiaAtencionRepository dias, DiaNoAtencionRepository cierres, TarifaServicioRepository tarifas, DetalleContratoRepository detalles, PagoContratoRepository pagos, ConsumoRepository consumos, ContextoLocalService contexto, CajaService cajas, CalculadoraRaciones calculadora, CorrelativoService correlativos, ValidadorPagos validadorPagos, EstadoContratoActual estados, ConsumoService consultaConsumos, ContratoMapper mapper, Clock clock, ReservaComprobanteService comprobantes, pe.edu.upeu.mana.service.service.AuditoriaService auditoria, CompensacionesRacion compensaciones) {
         this.contratos = contratos;
         this.clientes = clientes;
         this.planes = planes;
@@ -102,6 +104,7 @@ public class ContratoServiceImpl implements ContratoService {
         this.clock = clock;
         this.comprobantes = comprobantes;
         this.auditoria = auditoria;
+        this.compensaciones = compensaciones;
     }
 
     @Transactional(readOnly = true)
@@ -139,7 +142,9 @@ public class ContratoServiceImpl implements ContratoService {
             if (!servicios.findById(codigo).map(s -> Boolean.TRUE.equals(s.getActivo())).orElse(false))
                 throw new ReglaNegocioException("El servicio está inactivo");
             var calendario = dias.findByServicio(codigo).stream().map(ServicioDiaAtencion::getDiaSemana).collect(Collectors.toSet());
-            long raciones = calculadora.calcular(r.getFechaInicio(), fin, calendario, feriados);
+            var noDisponibles = new HashSet<>(feriados);
+            noDisponibles.addAll(compensaciones.fechasReservadas(cliente.getId(), codigo, r.getFechaInicio(), fin));
+            long raciones = calculadora.calcular(r.getFechaInicio(), fin, calendario, noDisponibles);
             if (raciones == 0)
                 throw new ReglaNegocioException("El periodo no tiene raciones para el servicio " + codigo);
             var tarifa = tarifas.findByServicioAndActivoTrue(codigo).orElseThrow(() -> new ReglaNegocioException("No hay tarifa activa para el servicio " + codigo));
@@ -158,6 +163,7 @@ public class ContratoServiceImpl implements ContratoService {
         long inicioOperacion = System.nanoTime();
         log.debug("Inicio ContratoServiceImpl.crear");
         try {
+            compensaciones.bloquearLocal(contexto.localId(null));
             var caja = cajas.buscarActualParaActualizar();
             clientes.buscarParaActualizar(r.getClienteId()).orElseThrow(() -> new RecursoNoEncontradoException("Cliente no encontrado"));
             return registrar(r, caja, null);
@@ -202,6 +208,7 @@ public class ContratoServiceImpl implements ContratoService {
         long inicioOperacion = System.nanoTime();
         log.debug("Inicio ContratoServiceImpl.renovar");
         try {
+            compensaciones.bloquearLocal(contexto.localId(null));
             var caja = cajas.buscarActualParaActualizar();
             Long clienteId = contratos.buscarClienteId(id).orElseThrow(() -> new RecursoNoEncontradoException("Contrato no encontrado"));
             clientes.buscarParaActualizar(clienteId).orElseThrow(() -> new RecursoNoEncontradoException("Cliente no encontrado"));
@@ -230,6 +237,7 @@ public class ContratoServiceImpl implements ContratoService {
         long inicioOperacion = System.nanoTime();
         log.debug("Inicio ContratoServiceImpl.anular");
         try {
+            compensaciones.bloquearLocal(contexto.localId(null));
             String motivo = validarMotivo(r);
             var caja = cajas.buscarActualParaActualizar();
             Long cliente = contratos.buscarClienteId(id).orElseThrow(() -> new RecursoNoEncontradoException("Contrato no encontrado"));
@@ -319,7 +327,10 @@ public class ContratoServiceImpl implements ContratoService {
         try {
             if (!clientes.existsById(clienteId))
                 throw new RecursoNoEncontradoException("Cliente no encontrado");
-            return respuesta(contratos.buscarVigente(clienteId, contexto.localId(localId), LocalDate.now(clock)).orElseThrow(() -> new RecursoNoEncontradoException("El cliente no tiene un contrato vigente en el local")));
+            Long local = contexto.localId(localId);
+            var recuperacion = compensaciones.contratoParaHoy(clienteId, local);
+            if (recuperacion.isPresent()) return respuesta(contratos.findById(recuperacion.get()).orElseThrow());
+            return respuesta(contratos.buscarVigente(clienteId, local, LocalDate.now(clock)).orElseThrow(() -> new RecursoNoEncontradoException("El cliente no tiene un contrato vigente ni compensación para hoy en el local")));
         } finally {
             log.debug("Fin ContratoServiceImpl.buscarVigente | duracionMs={}", (System.nanoTime() - inicioOperacion) / 1_000_000);
         }

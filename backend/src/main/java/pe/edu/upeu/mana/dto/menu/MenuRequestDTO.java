@@ -14,6 +14,10 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class MenuRequestDTO {
 
+    public MenuRequestDTO(LocalDate fecha, String servicio, Set<Long> platoIds) {
+        this(fecha, servicio, platoIds, -1L);
+    }
+
     @NotNull(message = "Fecha obligatoria")
     private LocalDate fecha;
 
@@ -23,4 +27,8 @@ public class MenuRequestDTO {
 
     @NotEmpty(message = "Seleccione platos")
     private Set<@NotNull(message = "Plato obligatorio") @Positive(message = "Plato inválido") Long> platoIds;
+
+    @NotNull(message = "Versión obligatoria")
+    @Min(value = -1, message = "Versión inválida")
+    private Long version = -1L;
 }

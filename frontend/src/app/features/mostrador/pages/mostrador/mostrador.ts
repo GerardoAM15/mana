@@ -139,7 +139,7 @@ export class Mostrador implements OnInit {
   // El servicio debe estar en el contrato y tener saldo.
   protected habilitado(servicio: string): boolean {
     const detalle = this.pensionista()?.servicios.find(d => d.servicio === servicio);
-    return !!detalle && detalle.saldoRaciones > 0;
+    return !!detalle && detalle.saldoRaciones > 0 && detalle.disponibleHoy !== false;
   }
 
   protected saldo(servicio: string): number | null {

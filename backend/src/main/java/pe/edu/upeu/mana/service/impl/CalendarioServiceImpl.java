@@ -23,11 +23,15 @@ public class CalendarioServiceImpl implements CalendarioService {
     private final ContextoLocalService contexto;
 
     private final DiaNoAtencionMapper mapper;
+    private final CompensacionesRacion compensaciones;
+    private final java.time.Clock clock;
 
-    public CalendarioServiceImpl(DiaNoAtencionRepository dias, ContextoLocalService contexto, DiaNoAtencionMapper mapper) {
+    public CalendarioServiceImpl(DiaNoAtencionRepository dias, ContextoLocalService contexto, DiaNoAtencionMapper mapper, CompensacionesRacion compensaciones, java.time.Clock clock) {
         this.dias = dias;
         this.contexto = contexto;
         this.mapper = mapper;
+        this.compensaciones = compensaciones;
+        this.clock = clock;
     }
 
     @Transactional
@@ -35,11 +39,15 @@ public class CalendarioServiceImpl implements CalendarioService {
         long inicioOperacion = System.nanoTime();
         log.debug("Inicio CalendarioServiceImpl.crear");
         try {
+            validarFecha(r.getFecha());
+            compensaciones.bloquearLocal(contexto.localId(null));
             var e = new DiaNoAtencion();
             e.setLocalId(contexto.localId(null));
             e.setFecha(r.getFecha());
             e.setMotivo(r.getMotivo());
-            return mapper.toResponse(dias.saveAndFlush(e));
+            dias.saveAndFlush(e);
+            compensaciones.aplicarCierre(e);
+            return mapper.toResponse(e);
         } finally {
             log.debug("Fin CalendarioServiceImpl.crear | duracionMs={}", (System.nanoTime() - inicioOperacion) / 1_000_000);
         }
@@ -50,10 +58,16 @@ public class CalendarioServiceImpl implements CalendarioService {
         long inicioOperacion = System.nanoTime();
         log.debug("Inicio CalendarioServiceImpl.actualizar");
         try {
+            compensaciones.bloquearLocal(contexto.localId(null));
             var e = obtener(id);
+            validarFecha(e.getFecha());
+            validarFecha(r.getFecha());
+            boolean cambiaFecha = !e.getFecha().equals(r.getFecha());
+            if (cambiaFecha) compensaciones.quitarCierre(id);
             e.setFecha(r.getFecha());
             e.setMotivo(r.getMotivo());
             dias.flush();
+            if (cambiaFecha) compensaciones.aplicarCierre(e);
             return mapper.toResponse(e);
         } finally {
             log.debug("Fin CalendarioServiceImpl.actualizar | duracionMs={}", (System.nanoTime() - inicioOperacion) / 1_000_000);
@@ -78,7 +92,11 @@ public class CalendarioServiceImpl implements CalendarioService {
         long inicioOperacion = System.nanoTime();
         log.debug("Inicio CalendarioServiceImpl.eliminar");
         try {
-            dias.delete(obtener(id));
+            compensaciones.bloquearLocal(contexto.localId(null));
+            var e = obtener(id);
+            validarFecha(e.getFecha());
+            compensaciones.quitarCierre(id);
+            dias.delete(e);
         } finally {
             log.debug("Fin CalendarioServiceImpl.eliminar | duracionMs={}", (System.nanoTime() - inicioOperacion) / 1_000_000);
         }
@@ -88,5 +106,10 @@ public class CalendarioServiceImpl implements CalendarioService {
         var e = dias.findById(id).orElseThrow(() -> new RecursoNoEncontradoException("Día no encontrado"));
         contexto.validarLocal(e.getLocalId());
         return e;
+    }
+
+    private void validarFecha(LocalDate fecha) {
+        if (fecha == null || !fecha.isAfter(LocalDate.now(clock)))
+            throw new DatosInvalidosException("Solo se permiten cierres posteriores al día actual (desde mañana)");
     }
 }

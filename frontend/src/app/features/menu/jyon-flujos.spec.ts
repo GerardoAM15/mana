@@ -63,14 +63,37 @@ describe('Jyon CU_11: banco de platos', () => {
 });
 
 describe('Jyon CU_12: programación semanal', () => {
+  it('impide publicar cuando falta una categoría aunque haya platos seleccionados', async () => {
+    const { c, apis, fixture, html } = await preparar(MenuSemana);
+    c.abrirEditor('2030-01-07', 'A'); c.alternar(3); fixture.detectChanges();
+    expect(c.categoriasFaltantes()).toEqual(['ENTRADA']);
+    expect((html.querySelector('button.confirmar') as HTMLButtonElement).disabled).toBe(true);
+    c.guardarCelda(); expect(apis[2].guardar).not.toHaveBeenCalled(); expect(c.errorModal()).toContain('cada categoría');
+  });
+  it('envía la versión que se abrió y conserva la selección si otro usuario guardó', async () => {
+    const { c, apis } = await preparar(MenuSemana);
+    c.menus.set([{ id: 1, fecha: '2030-01-07', servicio: 'A', version: 7, platos: [{ platoId: 3 }, { platoId: 5 }] }]);
+    c.abrirEditor('2030-01-07', 'A');
+    c.menus.set([{ id: 1, fecha: '2030-01-07', servicio: 'A', version: 8, platos: [{ platoId: 4 }, { platoId: 5 }] }]);
+    apis[2].guardar.mockReturnValue(errorApi());c.guardarCelda();
+    expect(apis[2].guardar).toHaveBeenCalledWith({ fecha: '2030-01-07', servicio: 'A', platoIds: [3, 5], version: 7 });
+    expect(c.editando()).not.toBeNull();expect([...c.elegidos()]).toEqual([3,5]);
+  });
+  it('espera el destino de clonado y descarta una respuesta de otra fecha', async () => {
+    const { c, apis } = await preparar(MenuSemana);const anterior = new Subject<any[]>();
+    apis[2].listar.mockReturnValueOnce(anterior).mockReturnValueOnce(of([{ servicio: 'A', version: 3 }]));
+    c.abrirClonar('2030-01-07');c.clonar();expect(apis[2].clonar).not.toHaveBeenCalled();
+    c.formClonar.controls.fechaDestino.setValue('2030-01-09');c.cargarDestinoClonado();
+    anterior.next([{ servicio: 'A', version: 1 }]);anterior.complete();expect(c.versionesClonado()).toEqual({ A: 3 });
+  });
   const lunes = '2030-01-07';
-  it('guarda los IDs seleccionados y cierra el editor', async () => { const { c, apis } = await preparar(MenuSemana); c.abrirEditor(lunes, 'A'); c.alternar(3); c.alternar(4); c.guardarCelda(); expect(apis[2].guardar).toHaveBeenCalledWith({ fecha: lunes, servicio: 'A', platoIds: [3, 4] }); expect(c.editando()).toBeNull(); expect(c.mensaje()).toBe('Menú guardado.'); expect(apis[2].listar).toHaveBeenCalledTimes(2); });
-  it('mantiene el editor y la selección ante un error', async () => { const { c, apis } = await preparar(MenuSemana); apis[2].guardar.mockReturnValue(errorApi()); c.abrirEditor(lunes, 'A'); c.alternar(3); c.guardarCelda(); expect(c.editando()).toEqual({ fecha: lunes, servicio: 'A' }); expect(c.elegidos().has(3)).toBe(true); expect(c.errorModal()).toBe('Conflicto de prueba'); expect(c.guardando()).toBe(false); });
+  it('guarda los IDs seleccionados y cierra el editor', async () => { const { c, apis } = await preparar(MenuSemana); c.abrirEditor(lunes, 'A'); c.alternar(3); c.alternar(4); c.alternar(5); c.guardarCelda(); expect(apis[2].guardar).toHaveBeenCalledWith({ fecha: lunes, servicio: 'A', platoIds: [3, 4, 5], version: -1 }); expect(c.editando()).toBeNull(); expect(c.mensaje()).toBe('Menú guardado.'); expect(apis[2].listar).toHaveBeenCalledTimes(2); });
+  it('mantiene el editor y la selección ante un error', async () => { const { c, apis } = await preparar(MenuSemana); apis[2].guardar.mockReturnValue(errorApi()); c.abrirEditor(lunes, 'A'); c.alternar(3); c.alternar(5); c.guardarCelda(); expect(c.editando()).toEqual({ fecha: lunes, servicio: 'A', version: -1 }); expect(c.elegidos().has(3)).toBe(true); expect(c.errorModal()).toBe('Conflicto de prueba'); expect(c.guardando()).toBe(false); });
   it('un lector no abre el editor', async () => { const { c } = await preparar(MenuSemana, { gestiona: false }); c.abrirEditor(lunes, 'A'); expect(c.editando()).toBeNull(); });
   it('no abre la cena del viernes', async () => { const { c } = await preparar(MenuSemana); c.abrirEditor('2030-01-11', 'C'); expect(c.editando()).toBeNull(); });
-  it('no clona sobre la misma fecha', async () => { const { c, apis } = await preparar(MenuSemana); c.formClonar.patchValue({ fechaOrigen: lunes, fechaDestino: lunes }); c.clonar(); expect(apis[2].clonar).not.toHaveBeenCalled(); expect(c.errorModal()).toContain('distinta'); });
+  it('no clona sobre la misma fecha', async () => { const { c, apis } = await preparar(MenuSemana); c.formClonar.patchValue({ fechaOrigen: lunes, fechaDestino: lunes }); c.cargarDestinoClonado(); c.clonar(); expect(apis[2].clonar).not.toHaveBeenCalled(); expect(c.errorModal()).toContain('distinta'); });
   it('no copia segundos a una cena sin atención', async () => { const { c, apis } = await preparar(MenuSemana); c.abrirCopiar('2030-01-11'); c.copiarACena(); expect(apis[2].copiarACena).not.toHaveBeenCalled(); });
-  it('avisa cuando el backend omite servicios al clonar', async () => { const { c, apis } = await preparar(MenuSemana); c.formClonar.patchValue({ fechaOrigen: lunes, fechaDestino: '2030-01-08', D: true, A: true, C: true }); apis[2].clonar.mockReturnValue(of([{ servicio: 'A' }])); c.clonar(); expect(c.mensajeAviso()).toBe(true); expect(c.mensaje()).toContain('Se omitió'); });
+  it('avisa cuando el backend omite servicios al clonar', async () => { const { c, apis } = await preparar(MenuSemana); c.formClonar.patchValue({ fechaOrigen: lunes, fechaDestino: '2030-01-08', D: true, A: true, C: true }); apis[2].clonar.mockReturnValue(of([{ servicio: 'A' }])); c.cargarDestinoClonado(); c.clonar(); expect(c.mensajeAviso()).toBe(true); expect(c.mensaje()).toContain('Se omitió'); });
   it('WhatsApp no abre un cuadro si no hay platos', async () => { const { c } = await preparar(MenuSemana); c.abrirCompartir(lunes); expect(c.compartiendo()).toBeNull(); });
   const programado = (servicio = 'A', fecha = lunes, atiende = true) => ({ id: 1, localId: 1, fecha, servicio, atiende, version: 0, platos: [{ platoId: 3, nombre: 'Arroz con pollo', categoria: 'SEGUNDO' }] });
   it('oculta WhatsApp al registrar un cierre aunque conserve la programación', async () => { const { c, fixture, html } = await preparar(MenuSemana); c.lunes.set(lunes); c.menus.set([programado()]); fixture.detectChanges(); expect(html.querySelector('button.compartir')).not.toBeNull(); c.feriados.set([{ fecha: lunes, motivo: 'Cierre' }]); fixture.detectChanges(); expect(c.textoMenu(lunes)).toBeNull(); expect(html.querySelector('button.compartir')).toBeNull(); expect(c.menus()[0].platos.length).toBe(1); });

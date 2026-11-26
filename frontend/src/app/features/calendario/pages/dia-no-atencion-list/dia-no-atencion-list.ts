@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../../core/auth/auth.service';
-import { hoy } from '../../../../core/utils/fechas';
+import { hoy, sumarDias } from '../../../../core/utils/fechas';
 import { erroresDeValidacion, mensajeError } from '../../../../core/utils/http-error';
 import { textoObligatorio } from '../../../../core/utils/validadores';
 import { ConfirmarDialogo } from '../../../../shared/components/confirmar-dialogo/confirmar-dialogo';
@@ -18,6 +18,8 @@ import { DiaNoAtencionService } from '../../services/dia-no-atencion-service';
   styleUrl: './dia-no-atencion-list.css',
 })
 export class DiaNoAtencionList implements OnInit {
+  protected get manana(): string { return sumarDias(hoy(), 1); }
+  protected puedeCambiar(fecha: string): boolean { return fecha >= this.manana; }
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly service = inject(DiaNoAtencionService);
   protected readonly localNombre = inject(AuthService).usuario()?.localNombre ?? '';
@@ -58,6 +60,7 @@ export class DiaNoAtencionList implements OnInit {
   }
 
   editar(dia: DiaNoAtencion): void {
+    if (!this.puedeCambiar(dia.fecha)) return;
     this.editando.set(dia);
     this.form.setValue({ fecha: dia.fecha, motivo: dia.motivo });
     this.mensaje.set(null);
@@ -74,6 +77,7 @@ export class DiaNoAtencionList implements OnInit {
       return;
     }
     const v = this.form.getRawValue();
+    if (!this.puedeCambiar(v.fecha)) { this.error.set('Solo se permiten cierres desde mañana.'); return; }
     const dto = { fecha: v.fecha, motivo: v.motivo.trim() };
     const editando = this.editando();
     const peticion = editando ? this.service.actualizar(editando.id, dto) : this.service.crear(dto);
@@ -99,6 +103,7 @@ export class DiaNoAtencionList implements OnInit {
   confirmarEliminar(): void {
     const dia = this.porEliminar();
     if (!dia) return;
+    if (!this.puedeCambiar(dia.fecha)) { this.error.set('No se pueden eliminar cierres de hoy ni anteriores.'); return; }
     this.guardando.set(true);
     this.service.eliminar(dia.id).subscribe({
       next: () => {
