@@ -8,6 +8,9 @@ import pe.edu.upeu.mana.entity.*;
 
 public interface ProgramacionMenuRepository extends JpaRepository<ProgramacionMenu, Long> {
 
+    @Query("select m from ProgramacionMenu m, MenuPlato p where p.menuId=m.id and p.platoId=:platoId and m.fecha>=:hoy and not exists (select c.id from DiaNoAtencion c where c.localId=m.localId and c.fecha=m.fecha) order by m.fecha,m.servicio")
+    java.util.List<ProgramacionMenu> futurasConPlato(@Param("platoId") Long platoId, @Param("hoy") java.time.LocalDate hoy);
+
     Optional<ProgramacionMenu> findByLocalIdAndFechaAndServicio(Long localId, java.time.LocalDate fecha, String servicio);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

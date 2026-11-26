@@ -76,6 +76,14 @@
         <tfoot><tr><th scope="row" colspan="4">Total</th><th scope="col" class="num">{{ c.montoTotal | currency }}</th></tr></tfoot>
       </table>
 
+      @for (d of c.detalles; track d.id) {
+        @if (d.compensaciones?.length) { <h4>Recuperaciones · {{ catalogos.nombreServicio(d.servicio) }}</h4> }
+        @for (recuperacion of d.compensaciones ?? []; track recuperacion.id) {
+          <p class="nota">{{ catalogos.nombreServicio(d.servicio) }} del {{ recuperacion.fechaOrigen | date }}:
+            compensación el {{ recuperacion.fechaCompensacion | date }} · {{ recuperacion.consumida ? 'Consumida' : 'Fecha asignada' }}.
+          </p>
+        }
+      }
       <h4>Pagos</h4>
       <table class="tabla">
         <thead><tr><th>Fecha</th><th>Tipo</th><th>Método</th><th>Referencia</th><th class="num">Monto</th></tr></thead>

@@ -8,6 +8,11 @@ import pe.edu.upeu.mana.entity.*;
 import pe.edu.upeu.mana.enums.EstadoContrato;
 
 public interface ContratoRepository extends JpaRepository<Contrato, Long> {
+    @Query("select c from Contrato c where c.localId=:local and c.fechaInicio<=:fecha and c.fechaFin>=:fecha and c.estado in (pe.edu.upeu.mana.enums.EstadoContrato.ACTIVO,pe.edu.upeu.mana.enums.EstadoContrato.PROGRAMADO) order by c.id")
+    java.util.List<Contrato> afectadosPorCierre(@Param("local") Long local,@Param("fecha") java.time.LocalDate fecha);
+
+    @Query("select c from Contrato c,DetalleContrato d where d.contratoId=c.id and c.clienteId=:cliente and d.servicio=:servicio and c.estado<>pe.edu.upeu.mana.enums.EstadoContrato.ANULADO order by c.fechaInicio,c.id")
+    java.util.List<Contrato> periodosDelServicio(@Param("cliente") Long cliente,@Param("servicio") String servicio);
     boolean existsByAnteriorIdAndEstadoNot(Long anteriorId, pe.edu.upeu.mana.enums.EstadoContrato estado);
 
 
@@ -23,7 +28,7 @@ public interface ContratoRepository extends JpaRepository<Contrato, Long> {
     @Query("select c from Contrato c where c.clienteId=:clienteId and c.localId=:localId and c.fechaInicio<=:hoy and c.fechaFin>=:hoy and c.estado in (pe.edu.upeu.mana.enums.EstadoContrato.PROGRAMADO,pe.edu.upeu.mana.enums.EstadoContrato.ACTIVO)")
     Optional<Contrato> buscarVigente(@Param("clienteId") Long clienteId, @Param("localId") Long localId, @Param("hoy") java.time.LocalDate hoy);
 
-    @Query("select c from Contrato c, Cliente p where p.id=c.clienteId and c.localId=:localId and c.fechaInicio<=:hoy and c.fechaFin>=:hoy and c.estado in (pe.edu.upeu.mana.enums.EstadoContrato.PROGRAMADO,pe.edu.upeu.mana.enums.EstadoContrato.ACTIVO) and (p.dni like :texto escape '!' or lower(concat(concat(p.nombre,' '),p.apellido)) like :texto escape '!') order by p.apellido,p.nombre")
+    @Query("select c from Contrato c, Cliente p where p.id=c.clienteId and c.localId=:localId and c.estado<>pe.edu.upeu.mana.enums.EstadoContrato.ANULADO and ((c.fechaInicio<=:hoy and c.fechaFin>=:hoy and c.estado in (pe.edu.upeu.mana.enums.EstadoContrato.PROGRAMADO,pe.edu.upeu.mana.enums.EstadoContrato.ACTIVO)) or exists (select r.id from CompensacionRacion r,DetalleContrato d where r.detalleContratoId=d.id and d.contratoId=c.id and d.saldoRaciones>0 and r.consumoId is null and r.fechaCompensacion=:hoy)) and (p.dni like :texto escape '!' or lower(concat(concat(p.nombre,' '),p.apellido)) like :texto escape '!') order by p.apellido,p.nombre,c.id")
     java.util.List<Contrato> buscarPensionistas(@Param("localId") Long localId, @Param("hoy") java.time.LocalDate hoy, @Param("texto") String texto);
 
     @Modifying

@@ -84,7 +84,7 @@
     [titulo]="catalogos.nombreServicio(celda.servicio) + ' · ' + (celda.fecha | date: 'EEEE dd/MM/yyyy')"
     mensaje="Marque los platos del banco que se servirán. Se reemplaza el menú de esa fecha y servicio."
     textoConfirmar="Guardar menú"
-    [confirmarDeshabilitado]="categoriasDelTurno().length === 0 || elegidos().size === 0 || seleccionFueraDelTurno()"
+    [confirmarDeshabilitado]="categoriasDelTurno().length === 0 || categoriasFaltantes().length > 0 || seleccionFueraDelTurno()"
     textoProcesando="Guardando..."
     [procesando]="guardando()"
     (confirmar)="guardarCelda()"
@@ -94,6 +94,11 @@
       <div class="alerta">{{ errorModal() }}</div>
     }
     <div class="banco">
+      @if (categoriasFaltantes().length > 0) {
+        <p class="nota">Seleccione al menos un plato por categoría. Faltan:
+          @for (categoria of categoriasFaltantes(); track categoria) { <strong>{{ catalogos.nombreCategoria(categoria) }} </strong> }
+        </p>
+      }
       @if (seleccionFueraDelTurno()) {
         <button type="button" class="btn" (click)="retirarPlatosFueraDelTurno()">Retirar de la selección los platos que no corresponden</button>
       }
@@ -130,7 +135,19 @@
     }
     <form [formGroup]="formClonar" class="modal-form">
       <label>Fecha origen <input type="date" class="input" formControlName="fechaOrigen" /></label>
-      <label>Fecha destino <input type="date" class="input" formControlName="fechaDestino" /></label>
+      @if (fechaOrigenCalendario() !== formClonar.controls.fechaOrigen.value) {
+        <small class="nota">Verificando el calendario de la fecha de origen...</small>
+      } @else if (feriado(formClonar.controls.fechaOrigen.value); as motivo) {
+        <small class="error">No se puede clonar desde un feriado: {{ motivo }}.</small>
+      }
+      <label>Fecha destino <input type="date" class="input" [min]="hoy" formControlName="fechaDestino" (change)="cargarDestinoClonado()" /></label>
+      @if (formClonar.controls.fechaDestino.value < hoy) {
+        <small class="error">No se puede clonar a una fecha anterior a hoy.</small>
+      } @else if (fechaDestinoCalendario() !== formClonar.controls.fechaDestino.value) {
+        <small class="nota">Verificando el calendario de la fecha destino...</small>
+      } @else if (feriado(formClonar.controls.fechaDestino.value); as motivo) {
+        <small class="error">No se puede clonar a un feriado: {{ motivo }}.</small>
+      }
       <div class="servicios-check">
         @for (s of servicios; track s) {
           @let motivo = motivoNoAtiende(formClonar.controls.fechaDestino.value, s);
@@ -159,7 +176,7 @@
       <div class="alerta">{{ errorModal() }}</div>
     }
     <form [formGroup]="formCopiar" class="modal-form">
-      <label>Fecha <input type="date" class="input" formControlName="fecha" /></label>
+      <label>Fecha <input type="date" class="input" formControlName="fecha" (change)="cargarDestinoCena()" /></label>
     </form>
     @if (motivoSinCena(); as motivo) {
       <div class="alerta aviso sin-cena">{{ motivo }}</div>

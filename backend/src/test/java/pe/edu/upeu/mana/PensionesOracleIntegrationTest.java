@@ -50,6 +50,7 @@ import pe.edu.upeu.mana.enums.TipoPagoContrato;
 @EnabledIfEnvironmentVariable(named = "MANA_ORACLE_TEST", matches = "true")
 @Transactional
 class PensionesOracleIntegrationTest {
+    @org.springframework.test.context.bean.override.mockito.MockitoBean pe.edu.upeu.mana.scheduler.ContratoScheduler tareasContratos;
     @Autowired pe.edu.upeu.mana.service.service.ClienteService clientesService;
     @Autowired UsuarioService usuariosService;
 
@@ -61,7 +62,7 @@ class PensionesOracleIntegrationTest {
         long anteriores = usuarios.countByRolAndActivoTrue(RolUsuario.DUENO);
         var creado = usuariosService.crear(new pe.edu.upeu.mana.dto.usuario.UsuarioRequestDTO(
                 dni(), "Dueño", "Prueba", null, localId, "Dueño", "dueno-" + UUID.randomUUID() + "@example.invalid",
-                "ClaveSoloParaTest1", RolUsuario.DUENO, true));
+                "ClaveSoloParaTest1!", RolUsuario.DUENO, true));
         assertTrue(creado.isGestionable());
         assertEquals(anteriores + 1, usuarios.countByRolAndActivoTrue(RolUsuario.DUENO));
         assertTrue(usuariosService.buscar(actor.getId()).isGestionable());
@@ -251,6 +252,8 @@ class PensionesOracleIntegrationTest {
 
     @Test
     void reportesIncluyenRecargosPorFechaDeRegistroYLocalDeLaCaja() {
+        var actorReportes=usuarios.findByCorreoIgnoreCase(SecurityContextHolder.getContext().getAuthentication().getName()).orElseThrow();
+        actorReportes.setRol(RolUsuario.DUENO);usuarios.flush();
         var contrato = registrar();
         var caja = cajas.buscarActual();
         var hoy = LocalDate.now(clock);
@@ -268,7 +271,9 @@ class PensionesOracleIntegrationTest {
         locales.saveAndFlush(otroLocal);
         var otraCaja = new SesionCaja();
         otraCaja.setLocalId(otroLocal.getId());
-        otraCaja.setUsuarioId(caja.getUsuarioId());
+        var otroEmpleado = new Empleado();otroEmpleado.setDni(dni());otroEmpleado.setNombre("Otro");otroEmpleado.setApellido("Operador");otroEmpleado.setCargo("Cajero");otroEmpleado.setLocalId(otroLocal.getId());empleados.saveAndFlush(otroEmpleado);
+        var otroUsuario = new Usuario();otroUsuario.setEmpleadoId(otroEmpleado.getId());otroUsuario.setCorreo("reportes-"+UUID.randomUUID()+"@example.invalid");otroUsuario.setClaveHash("hash-solo-prueba");otroUsuario.setRol(RolUsuario.ADMINISTRADOR);otroUsuario.setTokenVersion(0L);usuarios.saveAndFlush(otroUsuario);
+        otraCaja.setUsuarioId(otroUsuario.getId());
         otraCaja.setApertura(hoy.atStartOfDay());
         otraCaja.setMontoInicial(new BigDecimal("0.00"));
         otraCaja.setClaveAbierta("test-reportes-" + UUID.randomUUID());
@@ -276,12 +281,12 @@ class PensionesOracleIntegrationTest {
         consumoParaReporte(detalleId, otraCaja.getId(), hoy, hoy.atTime(12, 3), new BigDecimal("5.25"), false);
 
         var esperado = contrato.getMontoTotal().add(new BigDecimal("3.50"));
-        var ingreso = reportes.ingresos(hoy, hoy, null).getFirst();
+        var ingreso = reportes.ingresos(hoy, hoy, localId).getFirst();
         assertEquals(esperado, ingreso.getContratos());
         assertEquals(new BigDecimal("0.00"), ingreso.getVentas());
         assertEquals(esperado, ingreso.getTotal());
         for (String agrupacion : List.of("DIA", "MES")) {
-            var gastoIngreso = reportes.gastos(hoy, hoy, null, agrupacion).getFirst();
+            var gastoIngreso = reportes.gastos(hoy, hoy, localId, agrupacion).getFirst();
             assertEquals(esperado, gastoIngreso.getIngresos());
             assertEquals(new BigDecimal("0.00"), gastoIngreso.getGastos());
             assertEquals(esperado, gastoIngreso.getDiferencia());
@@ -296,8 +301,8 @@ class PensionesOracleIntegrationTest {
         recargo.setAnuladoEn(LocalDateTime.now(clock));
         recargo.setMotivoAnulacion("Anulación para reporte");
         consumosRepository.flush();
-        assertEquals(contrato.getMontoTotal(), reportes.ingresos(hoy, hoy, null).getFirst().getContratos());
-        assertEquals(contrato.getMontoTotal(), reportes.gastos(hoy, hoy, null, "DIA").getFirst().getIngresos());
+        assertEquals(contrato.getMontoTotal(), reportes.ingresos(hoy, hoy, localId).getFirst().getContratos());
+        assertEquals(contrato.getMontoTotal(), reportes.gastos(hoy, hoy, localId, "DIA").getFirst().getIngresos());
     }
 
     private Consumo consumoParaReporte(Long detalleId, Long cajaId, LocalDate fecha,

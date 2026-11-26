@@ -30,6 +30,7 @@ import pe.edu.upeu.mana.service.service.CorrelativoService;
 
 @ExtendWith(MockitoExtension.class)
 class ContratoServiceImplTest {
+    @Mock CompensacionesRacion compensaciones;
 
     @Mock
     ContratoRepository contratos;
@@ -112,7 +113,7 @@ class ContratoServiceImplTest {
     }
 
     private ContratoServiceImpl crearServicio(Clock reloj) {
-        return new ContratoServiceImpl(contratos, clientes, planes, planServicios, servicios, dias, cierres, tarifas, detalles, pagos, consumos, contexto, cajas, new CalculadoraRaciones(), correlativos, validador, new EstadoContratoActual(reloj), consultaConsumos, mapper, reloj, mock(pe.edu.upeu.mana.service.service.ReservaComprobanteService.class), auditoria);
+        return new ContratoServiceImpl(contratos, clientes, planes, planServicios, servicios, dias, cierres, tarifas, detalles, pagos, consumos, contexto, cajas, new CalculadoraRaciones(), correlativos, validador, new EstadoContratoActual(reloj), consultaConsumos, mapper, reloj, mock(pe.edu.upeu.mana.service.service.ReservaComprobanteService.class), auditoria, compensaciones);
     }
 
     final pe.edu.upeu.mana.service.service.AuditoriaService auditoria = mock(pe.edu.upeu.mana.service.service.AuditoriaService.class);

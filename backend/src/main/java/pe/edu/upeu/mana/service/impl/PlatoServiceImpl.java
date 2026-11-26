@@ -22,11 +22,15 @@ public class PlatoServiceImpl implements PlatoService {
     private final PlatoMapper mapper;
 
     private final CategoriaPlatoRepository categorias;
+    private final ProgramacionMenuRepository programaciones;
+    private final java.time.Clock clock;
 
-    public PlatoServiceImpl(PlatoRepository repository, PlatoMapper mapper, CategoriaPlatoRepository categorias) {
+    public PlatoServiceImpl(PlatoRepository repository, PlatoMapper mapper, CategoriaPlatoRepository categorias, ProgramacionMenuRepository programaciones, java.time.Clock clock) {
         this.repository = repository;
         this.mapper = mapper;
         this.categorias = categorias;
+        this.programaciones = programaciones;
+        this.clock = clock;
     }
 
     @Transactional
@@ -49,7 +53,9 @@ public class PlatoServiceImpl implements PlatoService {
         long inicioOperacion = System.nanoTime();
         log.debug("Inicio PlatoServiceImpl.actualizar");
         try {
-            var e = obtener(id);
+            var e = repository.buscarParaActualizar(id).orElseThrow(() -> new RecursoNoEncontradoException("Plato no encontrado"));
+            if (!Boolean.TRUE.equals(r.getActivo()) || !java.util.Objects.equals(e.getCategoria(), r.getCategoria()))
+                exigirSinProgramaciones(e);
             validar(e, r);
             mapper.actualizar(e, r);
             repository.flush();
@@ -86,7 +92,9 @@ public class PlatoServiceImpl implements PlatoService {
         long inicioOperacion = System.nanoTime();
         log.debug("Inicio PlatoServiceImpl.eliminar");
         try {
-            obtener(id).setActivo(false);
+            var e = repository.buscarParaActualizar(id).orElseThrow(() -> new RecursoNoEncontradoException("Plato no encontrado"));
+            exigirSinProgramaciones(e);
+            e.setActivo(false);
         } finally {
             log.debug("Fin PlatoServiceImpl.eliminar | duracionMs={}", (System.nanoTime() - inicioOperacion) / 1_000_000);
         }
@@ -94,6 +102,15 @@ public class PlatoServiceImpl implements PlatoService {
 
     private Plato obtener(Long id) {
         return repository.findById(id).orElseThrow(() -> new RecursoNoEncontradoException("Plato no encontrado"));
+    }
+
+    private void exigirSinProgramaciones(Plato plato) {
+        var pendientes = programaciones.futurasConPlato(plato.getId(), java.time.LocalDate.now(clock));
+        if (!pendientes.isEmpty()) {
+            String fechas = pendientes.stream().limit(8).map(m -> m.getFecha() + " (servicio " + m.getServicio() + ", local " + m.getLocalId() + ")")
+                    .collect(java.util.stream.Collectors.joining(", "));
+            throw new ReglaNegocioException("Reemplace primero este plato en las programaciones pendientes: " + fechas);
+        }
     }
 
     private void validar(Plato e, PlatoRequestDTO r) {

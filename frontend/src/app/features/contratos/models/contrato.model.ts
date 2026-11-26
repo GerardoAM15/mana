@@ -13,6 +13,8 @@ export interface DetalleContrato {
   saldoRaciones: number;
   precioRacionPactado: number;
   subtotal: number;
+  disponibleHoy?: boolean;
+  compensaciones?: { id: number; fechaOrigen: string; fechaCompensacion: string; consumida: boolean }[];
 }
 
 // PagoContratoResponseDTO.
