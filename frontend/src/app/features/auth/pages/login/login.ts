@@ -3,6 +3,7 @@ import { Component, inject, input, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { esEscritorio, servidorGuardado } from '../../../../core/config/servidor';
 import { mensajeError } from '../../../../core/utils/http-error';
 
 @Component({
@@ -18,6 +19,8 @@ export class Login {
   // ?returnUrl= que dejan el authGuard o el interceptor de 401.
   readonly returnUrl = input<string>();
 
+  // Solo en la app de escritorio: a qué servidor de la red está conectada esta caja.
+  protected readonly servidor = esEscritorio() ? servidorGuardado() : null;
   protected readonly enviando = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly verClave = signal(false);

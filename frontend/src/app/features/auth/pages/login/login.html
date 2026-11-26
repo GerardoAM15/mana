@@ -34,5 +34,8 @@
       {{ enviando() ? 'Ingresando...' : 'Ingresar' }}
     </button>
     <a routerLink="/recuperar" class="enlace">¿Olvidó su contraseña?</a>
+    @if (servidor) {
+      <a routerLink="/servidor" class="enlace servidor">Servidor: {{ servidor }} · Cambiar</a>
+    }
   </form>
 </main>
