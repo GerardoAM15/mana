@@ -1,6 +1,7 @@
 package pe.edu.upeu.mana.service.impl;
 
 import java.time.LocalDate;
+import java.time.Clock;
 import java.util.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,8 +37,9 @@ public class MenuServiceImpl implements MenuService {
     private final ReglaCobroRepository reglas;
     private final ComponenteReglaRepository componentes;
     private final LocalRepository locales;
+    private final Clock clock;
 
-    public MenuServiceImpl(ProgramacionMenuRepository menus, MenuPlatoRepository relaciones, PlatoRepository platos, ServicioRepository servicios, ContextoLocalService contexto, MenuMapper mapper, ValidadorAtencion atencion, ReglaCobroRepository reglas, ComponenteReglaRepository componentes, LocalRepository locales) {
+    public MenuServiceImpl(ProgramacionMenuRepository menus, MenuPlatoRepository relaciones, PlatoRepository platos, ServicioRepository servicios, ContextoLocalService contexto, MenuMapper mapper, ValidadorAtencion atencion, ReglaCobroRepository reglas, ComponenteReglaRepository componentes, LocalRepository locales, Clock clock) {
         this.menus = menus;
         this.relaciones = relaciones;
         this.platos = platos;
@@ -48,6 +50,7 @@ public class MenuServiceImpl implements MenuService {
         this.reglas = reglas;
         this.componentes = componentes;
         this.locales = locales;
+        this.clock = clock;
     }
 
     @Transactional
@@ -132,7 +135,13 @@ public class MenuServiceImpl implements MenuService {
         try {
             if (r.getFechaOrigen().equals(r.getFechaDestino()))
                 throw new DatosInvalidosException("Las fechas origen y destino deben ser distintas");
+            if (r.getFechaDestino().isBefore(LocalDate.now(clock)))
+                throw new DatosInvalidosException("No se puede clonar a una fecha anterior a hoy");
             Long local = contexto.localId(null);
+            if (atencion.esFeriado(local, r.getFechaOrigen()))
+                throw new ReglaNegocioException("No se puede clonar desde una fecha feriado");
+            if (atencion.esFeriado(local, r.getFechaDestino()))
+                throw new ReglaNegocioException("No se puede clonar a una fecha feriado");
             var origen = menus.filtrar(local, r.getFechaOrigen(), r.getFechaOrigen(), null).stream().filter(m -> r.getServicios() == null || r.getServicios().isEmpty() || r.getServicios().contains(m.getServicio())).toList();
             if (origen.isEmpty())
                 throw new RecursoNoEncontradoException("No hay menús en la fecha origen");

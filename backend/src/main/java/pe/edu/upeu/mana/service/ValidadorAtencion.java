@@ -16,8 +16,11 @@ public class ValidadorAtencion {
     }
     public boolean seAtiende(Long local, LocalDate fecha, String servicio) {
         return servicios.findById(servicio).map(s -> Boolean.TRUE.equals(s.getActivo())).orElse(false)
-            && !cierres.existsByLocalIdAndFecha(local, fecha)
+            && !esFeriado(local, fecha)
             && dias.existsById(new ServicioDiaAtencionId(servicio, fecha.getDayOfWeek().getValue()));
+    }
+    public boolean esFeriado(Long local, LocalDate fecha) {
+        return cierres.existsByLocalIdAndFecha(local, fecha);
     }
     public void validar(Long local, LocalDate hoy, String servicio) {
         var s = servicios.findById(servicio).orElseThrow(() -> new RecursoNoEncontradoException("Servicio no encontrado"));

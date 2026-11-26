@@ -66,6 +66,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/platos/**", "/api/v1/menus/**", "/api/v1/reglas-cobro/**", "/api/v1/tarifas/**", "/api/v1/precios-sueltos/**").hasAuthority("MENU_LEER")
                         .requestMatchers("/api/v1/platos/**", "/api/v1/menus/**", "/api/v1/reglas-cobro/**", "/api/v1/tarifas/**", "/api/v1/precios-sueltos/**").hasAuthority("MENU_GESTIONAR")
                         .requestMatchers("/api/v1/planes/**").hasAuthority("PLAN_GESTIONAR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/dias-no-atencion", "/api/v1/dias-no-atencion/**").hasAnyAuthority("CALENDARIO_GESTIONAR", "MENU_LEER")
                         .requestMatchers("/api/v1/dias-no-atencion/**").hasAuthority("CALENDARIO_GESTIONAR")
                         .requestMatchers("/api/v1/bebidas/**", "/api/v1/proveedores/**", "/api/v1/compras-bebidas/**", "/api/v1/stock-bebidas/**", "/api/v1/movimientos-stock/**").hasAuthority("INVENTARIO_GESTIONAR")
                         .requestMatchers("/api/v1/gastos/**").hasAuthority("GASTO_GESTIONAR")

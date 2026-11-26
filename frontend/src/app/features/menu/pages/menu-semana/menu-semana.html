@@ -135,7 +135,19 @@
     }
     <form [formGroup]="formClonar" class="modal-form">
       <label>Fecha origen <input type="date" class="input" formControlName="fechaOrigen" /></label>
-      <label>Fecha destino <input type="date" class="input" formControlName="fechaDestino" (change)="cargarDestinoClonado()" /></label>
+      @if (fechaOrigenCalendario() !== formClonar.controls.fechaOrigen.value) {
+        <small class="nota">Verificando el calendario de la fecha de origen...</small>
+      } @else if (feriado(formClonar.controls.fechaOrigen.value); as motivo) {
+        <small class="error">No se puede clonar desde un feriado: {{ motivo }}.</small>
+      }
+      <label>Fecha destino <input type="date" class="input" [min]="hoy" formControlName="fechaDestino" (change)="cargarDestinoClonado()" /></label>
+      @if (formClonar.controls.fechaDestino.value < hoy) {
+        <small class="error">No se puede clonar a una fecha anterior a hoy.</small>
+      } @else if (fechaDestinoCalendario() !== formClonar.controls.fechaDestino.value) {
+        <small class="nota">Verificando el calendario de la fecha destino...</small>
+      } @else if (feriado(formClonar.controls.fechaDestino.value); as motivo) {
+        <small class="error">No se puede clonar a un feriado: {{ motivo }}.</small>
+      }
       <div class="servicios-check">
         @for (s of servicios; track s) {
           @let motivo = motivoNoAtiende(formClonar.controls.fechaDestino.value, s);
