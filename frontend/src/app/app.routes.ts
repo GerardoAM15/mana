@@ -3,14 +3,20 @@ import { authGuard } from './core/guards/auth.guard';
 import { claveGuard } from './core/guards/clave.guard';
 import { invitadoGuard } from './core/guards/invitado.guard';
 import { permisoGuard } from './core/guards/permiso.guard';
+import { servidorGuard } from './core/guards/servidor.guard';
 import { MainLayout } from './layout/main-layout/main-layout';
 
 export const routes: Routes = [
   // Pantallas públicas, fuera del layout: no muestran header ni menú.
   {
+    path: 'servidor',
+    title: 'Conectar con el servidor',
+    loadComponent: () => import('./features/servidor/servidor').then(m => m.Servidor),
+  },
+  {
     path: 'login',
     title: 'Iniciar sesión',
-    canActivate: [invitadoGuard],
+    canActivate: [servidorGuard, invitadoGuard],
     loadComponent: () => import('./features/auth/pages/login/login').then(m => m.Login),
   },
   {
@@ -35,7 +41,7 @@ export const routes: Routes = [
     path: '',
     component: MainLayout,
     // claveGuard: con una contraseña que ya no cumple la política no se entra hasta cambiarla.
-    canActivate: [authGuard, claveGuard],
+    canActivate: [servidorGuard, authGuard, claveGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'inicio' },
       {

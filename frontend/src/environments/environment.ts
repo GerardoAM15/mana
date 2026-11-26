@@ -1,3 +1,5 @@
+import { apiUrl } from '../app/core/config/servidor';
+
 export const environment = {
-  apiUrl: '/api/v1',
+  apiUrl: apiUrl(),
 };
