@@ -10,6 +10,6 @@ import pe.edu.upeu.mana.dto.menu.MenuResponseDTO;
 public class MenuMapper {
 
     public MenuResponseDTO toResponse(ProgramacionMenu e, List<Plato> platos) {
-        return new MenuResponseDTO(e.getId(), e.getLocalId(), e.getFecha(), e.getServicio(), platos.stream().map(p -> new MenuPlatoResponseDTO(p.getId(), p.getNombre(), p.getCategoria())).toList(), e.getVersion());
+        return new MenuResponseDTO(e.getId(), e.getLocalId(), e.getFecha(), e.getServicio(), platos.stream().map(p -> new MenuPlatoResponseDTO(p.getId(), p.getNombre(), p.getCategoria())).toList(), e.getVersion(), false);
     }
 }

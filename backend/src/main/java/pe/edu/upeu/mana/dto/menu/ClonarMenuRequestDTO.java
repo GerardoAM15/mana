@@ -14,6 +14,10 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class ClonarMenuRequestDTO {
 
+    public ClonarMenuRequestDTO(LocalDate origen, LocalDate destino, Set<String> servicios) {
+        this(origen, destino, servicios, java.util.Map.of());
+    }
+
     @NotNull(message = "Fecha origen obligatoria")
     private LocalDate fechaOrigen;
 
@@ -21,4 +25,7 @@ public class ClonarMenuRequestDTO {
     private LocalDate fechaDestino;
 
     private Set<@NotBlank(message = "Servicio obligatorio") @Size(max = 32, message = "Máximo 32 caracteres") String> servicios;
+
+    @NotNull(message = "Versiones destino obligatorias")
+    private java.util.Map<String, @NotNull @Min(-1) Long> versionesDestino = java.util.Map.of();
 }

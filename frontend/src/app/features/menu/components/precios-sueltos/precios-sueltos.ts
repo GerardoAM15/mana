@@ -68,6 +68,10 @@ export class PreciosSueltos implements OnInit {
   }
 
   guardar(fila: FilaSuelto): void {
+    if (fila.precio.servicio === 'C' && fila.form.controls.activo.value) {
+      this.error.set('En la cena solo se vende el menú completo. Desactive el precio suelto.');
+      return;
+    }
     if (fila.form.invalid) {
       fila.form.markAllAsTouched();
       return;
@@ -84,6 +88,10 @@ export class PreciosSueltos implements OnInit {
   }
 
   crear(): void {
+    if (this.nuevo.controls.servicio.value === 'C') {
+      this.error.set('En la cena solo se vende el menú completo.');
+      return;
+    }
     if (this.nuevo.invalid) {
       this.nuevo.markAllAsTouched();
       return;

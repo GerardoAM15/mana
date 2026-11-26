@@ -59,7 +59,9 @@ public class ConsumoServiceImpl implements ConsumoService {
 
     private final Clock clock;
 
-    public ConsumoServiceImpl(ContratoRepository contratos, DetalleContratoRepository detallesContrato, ConsumoRepository consumos, DetalleConsumoRepository detallesConsumo, PlatoRepository platos, ValidadorAtencion atencion, ServicioRepository servicios, MetodoPagoRepository metodos, ContextoLocalService contexto, CajaService cajas, ValidadorMenu menus, EstadoContratoActual estados, ConsumoMapper mapper, Clock clock, pe.edu.upeu.mana.service.service.AuditoriaService auditoria) {
+    private final CompensacionesRacion compensaciones;
+
+    public ConsumoServiceImpl(ContratoRepository contratos, DetalleContratoRepository detallesContrato, ConsumoRepository consumos, DetalleConsumoRepository detallesConsumo, PlatoRepository platos, ValidadorAtencion atencion, ServicioRepository servicios, MetodoPagoRepository metodos, ContextoLocalService contexto, CajaService cajas, ValidadorMenu menus, EstadoContratoActual estados, ConsumoMapper mapper, Clock clock, pe.edu.upeu.mana.service.service.AuditoriaService auditoria, CompensacionesRacion compensaciones) {
         this.contratos = contratos;
         this.detallesContrato = detallesContrato;
         this.consumos = consumos;
@@ -75,6 +77,7 @@ public class ConsumoServiceImpl implements ConsumoService {
         this.mapper = mapper;
         this.clock = clock;
         this.auditoria = auditoria;
+        this.compensaciones = compensaciones;
     }
 
     @Transactional(readOnly = true)
@@ -103,6 +106,7 @@ public class ConsumoServiceImpl implements ConsumoService {
         try {
             var hoy = LocalDate.now(clock);
             Long local = contexto.localId(null);
+            compensaciones.bloquearLocal(local);
             var regla = menus.obtenerRegla(r.getServicio());
             BigDecimal recargo = Boolean.TRUE.equals(r.getParaLlevar()) ? regla.getRecargoLlevar() : new BigDecimal("0.00");
             SesionCaja caja = null;
@@ -119,10 +123,13 @@ public class ConsumoServiceImpl implements ConsumoService {
             contexto.validarLocal(contrato.getLocalId());
             if (!contrato.getLocalId().equals(local))
                 throw new ReglaNegocioException("El contrato no corresponde al local");
-            if (estados.calcular(contrato) != EstadoContrato.ACTIVO || hoy.isBefore(contrato.getFechaInicio()) || hoy.isAfter(contrato.getFechaFin()))
-                throw new ReglaNegocioException("El contrato no está activo para hoy");
+            boolean ordinario = estados.calcular(contrato) == EstadoContrato.ACTIVO && !hoy.isBefore(contrato.getFechaInicio()) && !hoy.isAfter(contrato.getFechaFin());
+            if (contrato.getEstado() == EstadoContrato.ANULADO || (!ordinario && !compensaciones.tieneParaHoy(contrato.getId(), r.getServicio())))
+                throw new ReglaNegocioException("El contrato no está activo ni tiene compensación de este servicio para hoy");
             atencion.validar(local, hoy, r.getServicio());
             var detalle = detallesContrato.buscarServicioParaActualizar(contrato.getId(), r.getServicio()).orElseThrow(() -> new ReglaNegocioException("El contrato no incluye ese servicio"));
+            var recuperacion = compensaciones.paraHoy(detalle.getId());
+            compensaciones.validarReservaAjena(contrato, r.getServicio());
             if (detalle.getSaldoRaciones() <= 0)
                 throw new ReglaNegocioException("No quedan raciones para ese servicio");
             String clave = contrato.getClienteId() + ":" + hoy + ":" + r.getServicio();
@@ -146,6 +153,7 @@ public class ConsumoServiceImpl implements ConsumoService {
             }
             detalle.setSaldoRaciones(detalle.getSaldoRaciones() - 1);
             consumos.saveAndFlush(c);
+            recuperacion.ifPresent(racion -> compensaciones.usar(racion, c.getId()));
             var lineas = new ArrayList<DetalleConsumo>();
             for (var linea : r.getPlatos().stream().sorted(Comparator.comparing(PlatoCantidadRequestDTO::getPlatoId)).toList()) {
                 var d = new DetalleConsumo();
@@ -169,6 +177,7 @@ public class ConsumoServiceImpl implements ConsumoService {
         long inicioOperacion = System.nanoTime();
         log.debug("Inicio ConsumoServiceImpl.anular");
         try {
+            compensaciones.bloquearLocal(contexto.localId(null));
             String motivo = r.getMotivo().trim();
             if (motivo.length() < 10 || motivo.length() > 250)
                 throw new DatosInvalidosException("El motivo debe tener entre 10 y 250 caracteres sin espacios exteriores");
@@ -191,6 +200,7 @@ public class ConsumoServiceImpl implements ConsumoService {
             c.setClaveDiaria(null);
             var saldoAnterior = detalle.getSaldoRaciones();
             detalle.setSaldoRaciones(saldoAnterior + 1);
+            compensaciones.devolver(c.getId());
             auditoria.registrar(pe.edu.upeu.mana.enums.AccionAuditoria.ANULAR_CONSUMO, "Consumo", c.getId(), contrato.getLocalId(),
                     "Consumo del contrato " + contrato.getNumero() + " | anulado: no -> sí | saldo de raciones: " + saldoAnterior + " -> " + (saldoAnterior + 1)
                             + " | recargo devuelto: " + c.getRecargoLlevar() + " | motivo: " + motivo);

@@ -4,6 +4,7 @@ import java.security.Principal;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import pe.edu.upeu.mana.service.service.AuthService;
+import pe.edu.upeu.mana.dto.auth.CambiarClaveRequestDTO;
 import pe.edu.upeu.mana.dto.auth.LoginRequestDTO;
 import pe.edu.upeu.mana.dto.auth.LoginResponseDTO;
 import pe.edu.upeu.mana.dto.comun.MensajeResponseDTO;
@@ -40,5 +41,11 @@ public class AuthController {
     public MensajeResponseDTO restablecer(@Valid @RequestBody RestablecerClaveRequestDTO r) {
         service.restablecer(r);
         return new MensajeResponseDTO("Contraseña actualizada");
+    }
+
+    // Devuelve un token nuevo: el cambio invalida las demás sesiones abiertas.
+    @PostMapping("/cambiar-clave")
+    public LoginResponseDTO cambiarClave(Principal p, @Valid @RequestBody CambiarClaveRequestDTO r) {
+        return service.cambiarClave(p.getName(), r);
     }
 }

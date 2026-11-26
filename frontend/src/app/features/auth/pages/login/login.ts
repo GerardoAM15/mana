@@ -36,7 +36,7 @@ export class Login {
     this.enviando.set(true);
     this.error.set(null);
     this.auth.login({ correo: valores.correo.trim(), clave: valores.clave }).subscribe({
-      next: () => this.router.navigateByUrl(this.returnUrl() || '/inicio'),
+      next: r => this.router.navigateByUrl(r.debeCambiarClave ? '/cambiar-clave' : this.returnUrl() || '/inicio'),
       error: (err: HttpErrorResponse) => {
         // El backend devuelve el mismo 401 para correo inexistente, clave errada o cuenta inactiva.
         this.error.set(mensajeError(err));

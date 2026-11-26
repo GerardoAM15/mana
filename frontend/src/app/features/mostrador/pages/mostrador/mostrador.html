@@ -55,7 +55,7 @@
           <button type="button" class="btn" (click)="cancelar()">Otro cliente</button>
         </div>
         @if (p.estado !== 'ACTIVO') {
-          <div class="alerta aviso">El contrato está {{ p.estado }}: solo se registran consumos de contratos activos.</div>
+          <div class="alerta aviso">El periodo ordinario está {{ p.estado }}. Solo se habilitan los servicios con compensación asignada para hoy.</div>
         }
 
         <p class="titulo-seccion">Servicio</p>
@@ -68,6 +68,11 @@
             </button>
           }
         </div>
+        @for (d of p.servicios; track d.id) {
+          @for (c of d.compensaciones ?? []; track c.id) {
+            @if (!c.consumida) { <p class="nota">{{ catalogos.nombreServicio(d.servicio) }}: recuperación del {{ c.fechaOrigen | date }} asignada al {{ c.fechaCompensacion | date }}.</p> }
+          }
+        }
       </div>
 
       <!-- Platos del menú de hoy -->

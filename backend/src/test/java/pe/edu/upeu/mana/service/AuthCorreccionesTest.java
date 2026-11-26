@@ -61,6 +61,7 @@ class AuthCorreccionesTest {
         for(int i=0;i<4;i++)assertThrows(BadCredentialsException.class,()->service.login(new LoginRequestDTO(u.getCorreo(),"incorrecta")));
         when(encoder.matches("correcta","hash")).thenReturn(true);
         when(empleados.findById(1L)).thenReturn(Optional.of(e));when(locales.findById(1L)).thenReturn(Optional.of(new Local()));
+        when(mapper.toResponse(any(),any(),any(),any(),any())).thenReturn(new LoginResponseDTO());
         service.login(new LoginRequestDTO(u.getCorreo(),"correcta"));
         for(int i=0;i<5;i++)assertThrows(BadCredentialsException.class,()->service.login(new LoginRequestDTO(u.getCorreo(),"incorrecta")));
         assertThrows(DemasiadosIntentosException.class,()->service.login(new LoginRequestDTO(u.getCorreo(),"incorrecta")));

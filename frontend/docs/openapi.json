@@ -4354,6 +4354,10 @@
           "version": {
             "type": "integer",
             "format": "int64"
+          },
+          "atiende": {
+            "type": "boolean",
+            "description": "Indica si el turno atiende en esa fecha y local; la programación se conserva aunque sea false."
           }
         }
       },

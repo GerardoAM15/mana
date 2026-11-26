@@ -114,6 +114,7 @@
       } @else if (errorSimulacion()) {
         <div class="alerta">{{ errorSimulacion() }}</div>
       } @else if (simulacion(); as s) {
+        <p class="nota">El cálculo excluye días sin atención y fechas ya reservadas para recuperar raciones de contratos anteriores; esas fechas no se cobran nuevamente.</p>
         <p>Del <strong>{{ s.fechaInicio | date }}</strong> al <strong>{{ s.fechaFin | date }}</strong></p>
         <table class="tabla">
           <thead><tr><th>Servicio</th><th class="num">Raciones</th><th class="num">Precio</th><th class="num">Subtotal</th></tr></thead>

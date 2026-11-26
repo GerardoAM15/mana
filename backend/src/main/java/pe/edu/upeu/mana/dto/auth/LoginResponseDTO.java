@@ -31,4 +31,8 @@ public class LoginResponseDTO {
     private String localNombre;
 
     private List<String> permisos;
+
+    // true cuando la contraseña con la que inició sesión ya no cumple la política: el frontend
+    // obliga a cambiarla antes de continuar. Se omite del JSON cuando no aplica.
+    private Boolean debeCambiarClave;
 }

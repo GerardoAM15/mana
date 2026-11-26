@@ -28,11 +28,11 @@ type CodigoServicio = 'D' | 'A' | 'C';
 interface Celda {
   fecha: string;
   servicio: string;
+  version?: number;
 }
 
 interface GrupoBanco {
   categoria: string;
-  enComposicion: boolean;
   platos: Plato[];
 }
 
@@ -58,6 +58,8 @@ export class MenuSemana implements OnInit {
   protected readonly dias = computed(() => Array.from({ length: 7 }, (_, i) => sumarDias(this.lunes(), i)));
   protected readonly menus = signal<MenuDia[]>([]);
   protected readonly feriados = signal<DiaNoAtencion[]>([]);
+  protected readonly fechaOrigenCalendario = signal<string | null>(null);
+  protected readonly fechaDestinoCalendario = signal<string | null>(null);
   protected readonly platos = signal<Plato[]>([]);
   protected readonly reglas = signal<ReglaCobro[]>([]);
   protected readonly cargando = signal(false);
@@ -68,26 +70,35 @@ export class MenuSemana implements OnInit {
 
   private readonly porCelda = computed(() => new Map(this.menus().map(m => [`${m.fecha}|${m.servicio}`, m])));
   private readonly feriadoPorFecha = computed(() => new Map(this.feriados().map(f => [f.fecha, f.motivo])));
+  private consultaSemana = 0;
 
   // Editor de una celda.
   protected readonly editando = signal<Celda | null>(null);
   protected readonly elegidos = signal<Set<number>>(new Set());
   protected readonly guardando = signal(false);
   protected readonly errorModal = signal<string | null>(null);
-  protected readonly gruposBanco = computed<GrupoBanco[]>(() => {
+  protected readonly categoriasDelTurno = computed(() => {
     const celda = this.editando();
-    if (!celda) return [];
-    const composicion = this.reglas().find(r => r.servicio === celda.servicio && r.activo)?.componentes.map(c => c.categoria) ?? [];
-    const visibles = this.platos().filter(p => p.activo || this.elegidos().has(p.id));
-    const categorias = [...new Set([...composicion, ...visibles.map(p => p.categoria)])];
-    return categorias
+    return celda ? this.reglas().find(r => r.servicio === celda.servicio && r.activo)?.componentes.map(c => c.categoria) ?? [] : [];
+  });
+  protected readonly categoriasFaltantes = computed(() => this.categoriasDelTurno().filter(categoria =>
+    !this.platos().some(p => p.activo && p.categoria === categoria && this.elegidos().has(p.id))));
+  protected readonly versionesClonado = signal<Record<string, number> | null>(null);
+  protected readonly versionCena = signal<number | null>(null);
+  private consultaClonado = 0;
+  private consultaCena = 0;
+  protected readonly seleccionFueraDelTurno = computed(() => {
+    const permitidas = new Set(this.categoriasDelTurno());
+    return [...this.elegidos()].some(id => !this.platos().some(p => p.id === id && p.activo && permitidas.has(p.categoria)));
+  });
+  protected readonly gruposBanco = computed<GrupoBanco[]>(() => {
+    const visibles = this.platos().filter(p => p.activo);
+    return this.categoriasDelTurno()
       .map(categoria => ({
         categoria,
-        enComposicion: composicion.includes(categoria),
         platos: visibles.filter(p => p.categoria === categoria).sort((a, b) => a.nombre.localeCompare(b.nombre)),
       }))
-      .filter(g => g.platos.length > 0)
-      .sort((a, b) => Number(b.enComposicion) - Number(a.enComposicion));
+      .filter(g => g.platos.length > 0);
   });
 
   // Clonar día y copiar segundos a la cena.
@@ -112,10 +123,20 @@ export class MenuSemana implements OnInit {
   });
 
   constructor() {
-    // Al cambiar la fecha destino se recalculan los servicios que se pueden clonar.
+    this.formClonar.controls.fechaOrigen.valueChanges.pipe(takeUntilDestroyed()).subscribe(fecha => {
+      this.fechaOrigenCalendario.set(null);
+      this.cargarFeriado(fecha, () => {
+        if (this.formClonar.controls.fechaOrigen.value === fecha) this.fechaOrigenCalendario.set(fecha);
+      }, () => this.errorModal.set('No se pudo verificar si la fecha de origen es feriado. Intente nuevamente.'));
+    });
+    // Al cambiar el destino se consulta el calendario y luego se habilitan solo los turnos atendibles.
     this.formClonar.controls.fechaDestino.valueChanges.pipe(takeUntilDestroyed()).subscribe(fecha => {
+      this.fechaDestinoCalendario.set(null);
       this.actualizarServiciosClonar();
-      this.cargarFeriado(fecha, () => this.actualizarServiciosClonar());
+      this.cargarFeriado(fecha, () => {
+        if (this.formClonar.controls.fechaDestino.value === fecha) this.fechaDestinoCalendario.set(fecha);
+        this.actualizarServiciosClonar();
+      }, () => this.errorModal.set('No se pudo verificar si la fecha destino es feriado. Intente nuevamente.'));
     });
     this.formCopiar.controls.fecha.valueChanges.pipe(takeUntilDestroyed()).subscribe(fecha => this.cargarFeriado(fecha));
   }
@@ -144,27 +165,30 @@ export class MenuSemana implements OnInit {
   }
 
   cargarSemana(): void {
+    const consulta = ++this.consultaSemana;
     const desde = this.lunes();
     const hasta = sumarDias(desde, 6);
     this.cargando.set(true);
     this.error.set(null);
+    this.menus.set([]);
+    this.feriados.set([]);
     this.menuService.listar({ desde, hasta, servicio: null, localId: null }).subscribe({
       next: menus => {
+        if (consulta !== this.consultaSemana) return;
         this.menus.set(menus);
         this.cargando.set(false);
       },
       error: (err: HttpErrorResponse) => {
+        if (consulta !== this.consultaSemana) return;
         this.error.set(mensajeError(err));
         this.cargando.set(false);
       },
     });
-    // Los feriados exigen CALENDARIO_GESTIONAR; sin ese permiso solo se grisan los días sin atención.
-    if (this.auth.tienePermiso('CALENDARIO_GESTIONAR')) {
-      this.diaNoAtencionService.listar({ desde, hasta, localId: null }).subscribe({
-        next: feriados => this.feriados.set(feriados),
-        error: () => this.feriados.set([]),
-      });
-    }
+    // MENU_LEER permite consultar los feriados para no ofrecer fechas sin atención al programar.
+    this.diaNoAtencionService.listar({ desde, hasta, localId: null }).subscribe({
+      next: feriados => { if (consulta === this.consultaSemana) this.feriados.set(feriados); },
+      error: () => { if (consulta === this.consultaSemana) this.feriados.set([]); },
+    });
   }
 
   protected menu(fecha: string, servicio: string): MenuDia | undefined {
@@ -177,17 +201,25 @@ export class MenuSemana implements OnInit {
 
   // Grisado si el servicio no se atiende ese día de la semana (p. ej. cena del viernes) o es feriado.
   protected atiende(fecha: string, servicio: string): boolean {
-    return this.catalogos.seAtiende(servicio, diaSemanaIso(fecha)) && !this.feriado(fecha);
+    return this.menu(fecha, servicio)?.atiende !== false
+      && this.catalogos.seAtiende(servicio, diaSemanaIso(fecha)) && !this.feriado(fecha);
   }
 
   abrirEditor(fecha: string, servicio: string): void {
     if (!this.gestiona || !this.atiende(fecha, servicio)) return;
-    this.editando.set({ fecha, servicio });
+    this.editando.set({ fecha, servicio, version: this.menu(fecha, servicio)?.version ?? -1 });
     this.elegidos.set(new Set(this.menu(fecha, servicio)?.platos.map(p => p.platoId) ?? []));
     this.errorModal.set(null);
+    if (this.categoriasDelTurno().length === 0) {
+      this.errorModal.set('Configure primero un menú público activo con su composición para este turno, en Menú → Precios.');
+    } else if (this.seleccionFueraDelTurno()) {
+      this.errorModal.set('Esta programación contiene platos inactivos o de categorías que ya no corresponden al turno. Retírelos antes de guardar.');
+    }
   }
 
   alternar(platoId: number): void {
+    const plato = this.platos().find(p => p.id === platoId);
+    if (!this.elegidos().has(platoId) && (!plato?.activo || !this.categoriasDelTurno().includes(plato.categoria))) return;
     this.elegidos.update(actual => {
       const nuevo = new Set(actual);
       if (nuevo.has(platoId)) nuevo.delete(platoId);
@@ -196,11 +228,33 @@ export class MenuSemana implements OnInit {
     });
   }
 
+  retirarPlatosFueraDelTurno(): void {
+    const permitidos = new Set(this.gruposBanco().flatMap(g => g.platos.map(p => p.id)));
+    this.elegidos.update(ids => new Set([...ids].filter(id => permitidos.has(id))));
+    this.errorModal.set(null);
+  }
+
   guardarCelda(): void {
     const celda = this.editando();
     if (!celda) return;
+    if (this.categoriasDelTurno().length === 0) {
+      this.errorModal.set('Configure primero un menú público activo con su composición para este turno, en Menú → Precios.');
+      return;
+    }
+    if (this.elegidos().size === 0) {
+      this.errorModal.set('Seleccione al menos un plato para programar el menú.');
+      return;
+    }
+    if (this.seleccionFueraDelTurno()) {
+      this.errorModal.set('Retire los platos inactivos o que no corresponden a las categorías de este turno.');
+      return;
+    }
+    if (this.categoriasFaltantes().length > 0) {
+      this.errorModal.set('Complete la programación: seleccione al menos un plato de cada categoría del turno.');
+      return;
+    }
     this.ejecutar(
-      this.menuService.guardar({ fecha: celda.fecha, servicio: celda.servicio, platoIds: [...this.elegidos()] }),
+      this.menuService.guardar({ fecha: celda.fecha, servicio: celda.servicio, platoIds: [...this.elegidos()], version: celda.version ?? -1 }),
       () => this.editando.set(null),
       'Menú guardado.',
     );
@@ -208,14 +262,48 @@ export class MenuSemana implements OnInit {
 
   abrirClonar(fecha?: string): void {
     const origen = fecha ?? this.hoy;
-    this.formClonar.reset({ fechaOrigen: origen, fechaDestino: sumarDias(origen, 1), D: true, A: true, C: true });
+    this.formClonar.reset({ fechaOrigen: origen, fechaDestino: sumarDias(origen, 1), D: true, A: true, C: true }, { emitEvent: false });
+    this.fechaOrigenCalendario.set(null);
+    this.fechaDestinoCalendario.set(null);
     this.errorModal.set(null);
     this.clonando.set(true);
+    this.cargarFeriado(origen, () => this.fechaOrigenCalendario.set(origen), () => this.errorModal.set('No se pudo verificar si la fecha de origen es feriado. Intente nuevamente.'));
+    const destino = sumarDias(origen, 1);
+    this.actualizarServiciosClonar();
+    this.cargarFeriado(destino, () => {
+      if (this.formClonar.controls.fechaDestino.value === destino) this.fechaDestinoCalendario.set(destino);
+      this.actualizarServiciosClonar();
+    }, () => this.errorModal.set('No se pudo verificar si la fecha destino es feriado. Intente nuevamente.'));
+    this.cargarDestinoClonado();
+  }
+
+  cargarDestinoClonado(): void {
+    const consulta = ++this.consultaClonado;
+    const fecha = this.formClonar.controls.fechaDestino.value;
+    this.versionesClonado.set(null);
+    if (!fecha) return;
+    this.menuService.listar({ desde: fecha, hasta: fecha, servicio: null, localId: null }).subscribe({
+      next: menus => { if (consulta === this.consultaClonado) this.versionesClonado.set(Object.fromEntries(menus.map(m => [m.servicio, m.version]))); },
+      error: (err: HttpErrorResponse) => { if (consulta === this.consultaClonado) this.errorModal.set(mensajeError(err)); },
+    });
+  }
+
+  cargarDestinoCena(): void {
+    const consulta = ++this.consultaCena;
+    const fecha = this.formCopiar.controls.fecha.value;
+    this.versionCena.set(null);
+    if (!fecha) return;
+    this.menuService.listar({ desde: fecha, hasta: fecha, servicio: 'C', localId: null }).subscribe({
+      next: menus => { if (consulta === this.consultaCena) this.versionCena.set(menus[0]?.version ?? -1); },
+      error: (err: HttpErrorResponse) => { if (consulta === this.consultaCena) this.errorModal.set(mensajeError(err)); },
+    });
   }
 
   // Motivo por el que un servicio no se puede clonar a la fecha (null si se puede).
   protected motivoNoAtiende(fecha: string, servicio: string): string | null {
     if (!fecha) return null;
+    if (fecha < this.hoy) return 'fecha anterior a hoy';
+    if (this.fechaDestinoCalendario() !== fecha) return 'verificando calendario';
     if (this.feriado(fecha)) return 'feriado';
     if (!this.catalogos.seAtiende(servicio, diaSemanaIso(fecha))) return 'no se atiende ese día';
     return null;
@@ -223,17 +311,23 @@ export class MenuSemana implements OnInit {
 
   clonar(): void {
     const v = this.formClonar.getRawValue();
+    if (this.formClonar.invalid) { this.errorModal.set('Elija las fechas de origen y destino.'); return; }
+    if (v.fechaDestino < this.hoy) { this.errorModal.set('No se puede clonar a una fecha anterior a hoy.'); return; }
+    if (v.fechaOrigen === v.fechaDestino) { this.errorModal.set('La fecha destino debe ser distinta de la de origen.'); return; }
+    if (this.fechaOrigenCalendario() !== v.fechaOrigen || this.fechaDestinoCalendario() !== v.fechaDestino) {
+      this.errorModal.set('Espere a que se verifique el calendario de ambas fechas.');
+      return;
+    }
+    if (this.feriado(v.fechaOrigen)) { this.errorModal.set('No se puede clonar desde una fecha feriado.'); return; }
+    if (this.feriado(v.fechaDestino)) { this.errorModal.set('No se puede clonar a una fecha feriado.'); return; }
+    if (this.versionesClonado() === null) { this.errorModal.set('Espere a que se cargue la programación destino.'); return; }
     const servicios = SERVICIOS.filter(s => v[s as CodigoServicio] && !this.motivoNoAtiende(v.fechaDestino, s));
     if (this.formClonar.invalid || servicios.length === 0) {
       this.errorModal.set('Elija las fechas y al menos un servicio que se atienda en la fecha destino.');
       return;
     }
-    if (v.fechaOrigen === v.fechaDestino) {
-      this.errorModal.set('La fecha destino debe ser distinta de la de origen.');
-      return;
-    }
     this.ejecutar(
-      this.menuService.clonar({ fechaOrigen: v.fechaOrigen, fechaDestino: v.fechaDestino, servicios }),
+      this.menuService.clonar({ fechaOrigen: v.fechaOrigen, fechaDestino: v.fechaDestino, servicios, versionesDestino: this.versionesClonado()! }),
       () => this.clonando.set(false),
       // El backend puede omitir servicios: se compara lo pedido con lo devuelto.
       clonados => {
@@ -251,12 +345,14 @@ export class MenuSemana implements OnInit {
     this.formCopiar.reset({ fecha: fecha ?? this.hoy });
     this.errorModal.set(null);
     this.copiando.set(true);
+    this.cargarDestinoCena();
   }
 
   copiarACena(): void {
+    if (this.versionCena() === null) { this.errorModal.set('Espere a que se cargue la programación de cena.'); return; }
     if (this.formCopiar.invalid || this.motivoSinCena()) return;
     this.ejecutar(
-      this.menuService.copiarACena({ fecha: this.formCopiar.getRawValue().fecha }),
+      this.menuService.copiarACena({ fecha: this.formCopiar.getRawValue().fecha, version: this.versionCena()! }),
       () => this.copiando.set(false),
       'Segundos del almuerzo copiados a la cena.',
     );
@@ -270,19 +366,37 @@ export class MenuSemana implements OnInit {
   }
 
   // ---- Compartir el menú del día por WhatsApp (se pega en el grupo o lista de difusión) ----
-  protected readonly compartiendo = signal<{ fecha: string; texto: string } | null>(null);
+  protected readonly compartiendo = signal<{ fecha: string; texto: string; base: string } | null>(null);
   protected readonly copiado = signal<string | null>(null);
 
-  // Texto del menú del día o null si ese día no tiene platos programados.
+  // Solo anuncia turnos que siguen habilitados, aunque existan platos guardados.
   protected textoMenu(fecha: string): string | null {
-    return mensajeMenuDelDia(fecha, this.menus(), c => this.catalogos.nombreServicio(c), c => this.catalogos.nombreCategoria(c));
+    const disponibles = this.menus().filter(m => m.fecha === fecha && this.atiende(m.fecha, m.servicio));
+    return mensajeMenuDelDia(fecha, disponibles, c => this.catalogos.nombreServicio(c), c => this.catalogos.nombreCategoria(c));
   }
 
   abrirCompartir(fecha: string): void {
-    const texto = this.textoMenu(fecha);
-    if (!texto) return;
+    if (!this.textoMenu(fecha)) return;
+    const consulta = this.consultaSemana;
+    this.compartiendo.set(null);
     this.copiado.set(null);
-    this.compartiendo.set({ fecha, texto });
+    // Comprueba el calendario actual también para lectores sin acceso a los cierres.
+    this.menuService.listar({ desde: fecha, hasta: fecha, servicio: null, localId: null }).subscribe({
+      next: menus => {
+        if (consulta !== this.consultaSemana) return;
+        this.menus.update(actuales => [...actuales.filter(m => m.fecha !== fecha), ...menus]);
+        const texto = this.textoMenu(fecha);
+        if (!texto) {
+          this.error.set('Ese día no tiene menús disponibles para compartir. Revise los días de atención y cierres.');
+          return;
+        }
+        this.error.set(null);
+        this.compartiendo.set({ fecha, texto, base: texto });
+      },
+      error: (err: HttpErrorResponse) => {
+        if (consulta === this.consultaSemana) this.error.set(mensajeError(err));
+      },
+    });
   }
 
   // El texto se puede retocar en el cuadro antes de compartirlo.
@@ -291,7 +405,7 @@ export class MenuSemana implements OnInit {
   }
 
   async copiarTexto(): Promise<void> {
-    const c = this.compartiendo();
+    const c = this.compartirVigente();
     if (!c) return;
     try {
       await navigator.clipboard.writeText(c.texto);
@@ -302,7 +416,7 @@ export class MenuSemana implements OnInit {
   }
 
   abrirWhatsApp(): void {
-    const c = this.compartiendo();
+    const c = this.compartirVigente();
     if (!c) return;
     // wa.me abre WhatsApp (app o web) con el texto escrito; el usuario elige el chat y pulsa enviar.
     window.open(enlaceWhatsApp(c.texto), '_blank', 'noopener');
@@ -311,6 +425,14 @@ export class MenuSemana implements OnInit {
 
   cerrarCompartir(): void {
     this.compartiendo.set(null);
+  }
+
+  private compartirVigente() {
+    const c = this.compartiendo();
+    if (c && this.textoMenu(c.fecha) === c.base) return c;
+    if (c) this.error.set('La programación o la atención cambió. Vuelva a abrir el menú para compartir.');
+    this.compartiendo.set(null);
+    return null;
   }
 
   // Deshabilita (y desmarca) los servicios que no se atienden en la fecha destino o caen en feriado.
@@ -329,14 +451,14 @@ export class MenuSemana implements OnInit {
   }
 
   // Trae los feriados de una fecha fuera de la semana visible para que feriado() la conozca.
-  private cargarFeriado(fecha: string, alTerminar?: () => void): void {
-    if (!fecha || !this.auth.tienePermiso('CALENDARIO_GESTIONAR')) return;
+  private cargarFeriado(fecha: string, alTerminar?: () => void, alFallar?: () => void): void {
+    if (!fecha) { alFallar?.(); return; }
     this.diaNoAtencionService.listar({ desde: fecha, hasta: fecha, localId: null }).subscribe({
       next: nuevos => {
-        this.feriados.update(actuales => [...actuales.filter(f => !nuevos.some(n => n.id === f.id)), ...nuevos]);
+        this.feriados.update(actuales => [...actuales.filter(f => f.fecha !== fecha), ...nuevos]);
         alTerminar?.();
       },
-      error: () => undefined,
+      error: () => alFallar?.(),
     });
   }
 

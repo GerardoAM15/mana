@@ -18,8 +18,9 @@
       <form [formGroup]="form" (ngSubmit)="guardar()" class="formulario">
         <label for="nuevaClave">Nueva contraseña</label>
         <input id="nuevaClave" type="password" class="input" formControlName="nuevaClave" autocomplete="new-password" />
-        @if (form.controls.nuevaClave.touched && form.controls.nuevaClave.invalid) {
-          <small class="error">Debe tener entre 8 y 72 caracteres.</small>
+        <app-medidor-clave [clave]="nuevaClave()" />
+        @if (form.controls.nuevaClave.touched && form.controls.nuevaClave.hasError('required')) {
+          <small class="error">Ingrese la nueva contraseña.</small>
         }
         @if (erroresServidor()['nuevaClave']; as mensajeCampo) {
           <small class="error">{{ mensajeCampo }}</small>

@@ -23,6 +23,7 @@ import pe.edu.upeu.mana.service.service.ContextoLocalService;
 
 @ExtendWith(MockitoExtension.class)
 class ConsumoServiceImplTest {
+    @Mock CompensacionesRacion compensaciones;
 
     @Mock
     ContratoRepository contratos;
@@ -91,7 +92,7 @@ class ConsumoServiceImplTest {
     }
 
     private ConsumoServiceImpl crearServicio(Clock reloj) {
-        return new ConsumoServiceImpl(contratos, detallesContrato, consumos, detallesConsumo, platos, new ValidadorAtencion(servicios, dias, cierres), servicios, metodos, contexto, cajas, menus, new EstadoContratoActual(reloj), mapper, reloj, auditoria);
+        return new ConsumoServiceImpl(contratos, detallesContrato, consumos, detallesConsumo, platos, new ValidadorAtencion(servicios, dias, cierres), servicios, metodos, contexto, cajas, menus, new EstadoContratoActual(reloj), mapper, reloj, auditoria, compensaciones);
     }
 
     @Mock

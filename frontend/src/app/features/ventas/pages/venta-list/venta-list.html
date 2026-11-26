@@ -7,16 +7,30 @@
     <a routerLink="/pos" class="btn btn-primary">Ir al punto de venta</a>
   </header>
 
+  <div class="pestanas" role="tablist" aria-label="Vista de ventas">
+    <button type="button" role="tab" class="pestana" [class.activa]="pestana() === 'curso'"
+            [attr.aria-selected]="pestana() === 'curso'" (click)="cambiarPestana('curso')">En curso</button>
+    <button type="button" role="tab" class="pestana" [class.activa]="pestana() === 'historial'"
+            [attr.aria-selected]="pestana() === 'historial'" (click)="cambiarPestana('historial')">Historial</button>
+  </div>
+
   <form [formGroup]="filtros" (ngSubmit)="buscar(0)" class="card filtros">
-    <label>Desde <input type="date" class="input" formControlName="desde" /></label>
-    <label>Hasta <input type="date" class="input" formControlName="hasta" /></label>
-    <label>
-      Estado
-      <select class="input" formControlName="estado">
-        <option value="">Todos</option>
-        @for (e of estados; track e) { <option [value]="e">{{ e }}</option> }
-      </select>
-    </label>
+    @if (pestana() === 'historial') {
+      <label>Desde <input type="date" class="input" formControlName="desde" /></label>
+      <label>Hasta <input type="date" class="input" formControlName="hasta" /></label>
+      <label>
+        Estado
+        <select class="input" formControlName="estado">
+          <option value="">Pagadas y anuladas</option>
+          @for (e of estadosHistorial; track e) { <option [value]="e">{{ e }}</option> }
+        </select>
+      </label>
+    } @else {
+      <p class="ayuda">
+        Ventas por cobrar. Al cobrarlas pasan al historial.
+        @if (actualizadoEn(); as hora) { <span class="hora">Actualizado {{ hora | date: 'HH:mm:ss' }}</span> }
+      </p>
+    }
     <label>Caja <input type="number" min="1" class="input" placeholder="N.º de caja" formControlName="cajaId" /></label>
     <div class="botones">
       <button type="submit" class="btn btn-primary" [disabled]="cargando()">Buscar</button>
@@ -33,7 +47,10 @@
   } @else if (resultado(); as r) {
     <table class="tabla">
       <thead>
-        <tr><th>Número</th><th>Fecha</th><th>Servicio</th><th>Para llevar</th><th>Caja</th><th class="num">Total</th><th>Estado</th><th></th></tr>
+        <tr>
+          <th scope="col">Número</th><th scope="col">Fecha</th><th scope="col">Servicio</th><th scope="col">Para llevar</th>
+          <th scope="col">Caja</th><th scope="col" class="num">Total</th><th scope="col">Estado</th><th scope="col"><span class="solo-lector">Acción</span></th>
+        </tr>
       </thead>
       <tbody>
         @for (v of r.contenido; track v.id) {
@@ -48,10 +65,14 @@
             <td><a [routerLink]="[v.id]" class="btn">{{ v.estado === 'PENDIENTE' ? 'Cobrar' : 'Ver' }}</a></td>
           </tr>
         } @empty {
-          <tr><td colspan="8" class="vacio">No hay registros.</td></tr>
+          <tr>
+            <td colspan="8" class="vacio">
+              {{ pestana() === 'curso' ? 'No hay ventas por cobrar.' : 'No hay ventas en este periodo.' }}
+            </td>
+          </tr>
         }
       </tbody>
     </table>
-    <app-paginador [pagina]="r" [deshabilitado]="cargando()" (cambiar)="buscar($event)" (cambiarTamanio)="buscar(0, $event)" />
+    <app-paginador [pagina]="r" [deshabilitado]="cargando()" (cambiar)="buscar($event)" (cambiarTamanio)="cambiarTamanio($event)" />
   }
 </section>

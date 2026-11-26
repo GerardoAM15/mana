@@ -5,7 +5,7 @@
       <h2>Días de no atención</h2>
     </div>
   </header>
-  <p class="nota">Feriados o cierres del local. Esos días no cuentan como raciones en los contratos nuevos y no se registran consumos.</p>
+  <p class="nota">Registre cierres desde mañana. No se cobran esas fechas en contratos nuevos. Los contratos existentes recuperan cada ración afectada en una fecha adicional de atención de su servicio; consulte las fechas en el contrato.</p>
 
   @if (mensaje()) {
     <div class="alerta exito">{{ mensaje() }}</div>
@@ -19,7 +19,7 @@
     <div class="campos">
       <label>
         Fecha
-        <input type="date" class="input" formControlName="fecha" />
+        <input type="date" class="input" formControlName="fecha" [min]="manana" />
         @if (form.controls.fecha.touched && form.controls.fecha.invalid) { <small class="error">Elija la fecha.</small> }
         @if (erroresServidor()['fecha']; as m) { <small class="error">{{ m }}</small> }
       </label>
@@ -58,8 +58,8 @@
             <td class="dia">{{ d.fecha | date: 'EEEE' }}</td>
             <td>{{ d.motivo }}</td>
             <td class="acciones">
-              <button type="button" class="btn" (click)="editar(d)">Editar</button>
-              <button type="button" class="btn btn-peligro" (click)="porEliminar.set(d)">Eliminar</button>
+              <button type="button" class="btn" [disabled]="!puedeCambiar(d.fecha)" (click)="editar(d)">Editar</button>
+              <button type="button" class="btn btn-peligro" [disabled]="!puedeCambiar(d.fecha)" (click)="porEliminar.set(d)">Eliminar</button>
             </td>
           </tr>
         } @empty {

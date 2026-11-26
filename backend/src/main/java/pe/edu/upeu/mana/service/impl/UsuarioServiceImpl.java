@@ -2,7 +2,7 @@ package pe.edu.upeu.mana.service.impl;
 
 import pe.edu.upeu.mana.enums.RolUsuario;
 import java.util.*;
-import java.nio.charset.StandardCharsets;
+import pe.edu.upeu.mana.security.PoliticaClave;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -56,6 +56,8 @@ public class UsuarioServiceImpl implements UsuarioService {
         try {
             var actual = bloquearGestion();
             validarGestion(actual, null, r.getRol());
+            // El administrador solo crea usuarios de su local; el dueño, de cualquiera.
+            contexto.validarLocal(r.getLocalId());
             if (r.getClave() == null || r.getClave().isBlank())
                 throw new DatosInvalidosException("La clave es obligatoria al crear un usuario");
             var u = new Usuario();
@@ -82,6 +84,9 @@ public class UsuarioServiceImpl implements UsuarioService {
             validarUltimoDueno(u, r.getRol(), r.getActivo());
             validarCambioPropio(actual, u, r.getRol() != u.getRol() || !Boolean.TRUE.equals(r.getActivo()));
             var e = empleados.buscarParaActualizar(u.getEmpleadoId()).orElseThrow(() -> new RecursoNoEncontradoException("Empleado no encontrado"));
+            // Ni editar usuarios de otro local ni moverlos a otro local, salvo el dueño.
+            contexto.validarLocal(e.getLocalId());
+            contexto.validarLocal(r.getLocalId());
             if (u.getRol() != r.getRol() || !u.getActivo().equals(r.getActivo()) || !u.getCorreo().equalsIgnoreCase(r.getCorreo().trim()) || !e.getLocalId().equals(r.getLocalId()) || r.getClave() != null)
                 u.setTokenVersion(u.getTokenVersion() + 1);
             asignar(u, e, r);
@@ -102,8 +107,7 @@ public class UsuarioServiceImpl implements UsuarioService {
         if (!locales.findById(r.getLocalId()).map(l -> Boolean.TRUE.equals(l.getActivo())).orElse(false))
             throw new ReglaNegocioException("Local inexistente o inactivo");
         if (r.getClave() != null) {
-            if (r.getClave().getBytes(StandardCharsets.UTF_8).length > 72)
-                throw new DatosInvalidosException("La clave admite hasta 72 bytes UTF-8");
+            PoliticaClave.validar(r.getClave(), r.getCorreo(), r.getDni(), r.getNombre(), r.getApellido());
             u.setClaveHash(encoder.encode(r.getClave()));
         }
         e.setDni(r.getDni());
@@ -123,7 +127,9 @@ public class UsuarioServiceImpl implements UsuarioService {
         long inicioOperacion = System.nanoTime();
         log.debug("Inicio UsuarioServiceImpl.buscar");
         try {
-            return respuesta(obtener(id), contexto.usuario());
+            var u = obtener(id);
+            validarLocalDe(u);
+            return respuesta(u, contexto.usuario());
         } finally {
             log.debug("Fin UsuarioServiceImpl.buscar | duracionMs={}", (System.nanoTime() - inicioOperacion) / 1_000_000);
         }
@@ -135,7 +141,10 @@ public class UsuarioServiceImpl implements UsuarioService {
         log.debug("Inicio UsuarioServiceImpl.listar");
         try {
             var actual = contexto.usuario();
-            return usuarios.findAll(org.springframework.data.domain.Sort.by("id")).stream().map(u -> respuesta(u, actual)).toList();
+            // El dueño ve a todos; el administrador, solo a los usuarios de su local.
+            Long propio = actual.getRol() == RolUsuario.DUENO ? null : contexto.localId(null);
+            return usuarios.findAll(org.springframework.data.domain.Sort.by("id")).stream().map(u -> respuesta(u, actual))
+                    .filter(r -> propio == null || propio.equals(r.getLocalId())).toList();
         } finally {
             log.debug("Fin UsuarioServiceImpl.listar | duracionMs={}", (System.nanoTime() - inicioOperacion) / 1_000_000);
         }
@@ -151,6 +160,7 @@ public class UsuarioServiceImpl implements UsuarioService {
             validarGestion(actual, u, r.getRol());
             validarUltimoDueno(u, r.getRol(), u.getActivo());
             validarCambioPropio(actual, u, true);
+            validarLocalDe(u);
             validarRol(r.getRol());
             if (u.getRol() != r.getRol()) {
                 u.setRol(r.getRol());
@@ -173,6 +183,7 @@ public class UsuarioServiceImpl implements UsuarioService {
             validarGestion(actual, u, u.getRol());
             validarUltimoDueno(u, u.getRol(), false);
             validarCambioPropio(actual, u, true);
+            validarLocalDe(u);
             u.setActivo(false);
             u.setTokenVersion(u.getTokenVersion() + 1);
         } finally {
@@ -213,6 +224,12 @@ public class UsuarioServiceImpl implements UsuarioService {
     private void validarCambioPropio(Usuario actual, Usuario objetivo, boolean restringido) {
         if (restringido && Objects.equals(actual.getId(), objetivo.getId()))
             throw new AccessDeniedException("No tiene permiso para gestionar este usuario");
+    }
+
+    // 403 si el usuario objetivo es de otro local y quien consulta no es el dueño.
+    private void validarLocalDe(Usuario objetivo) {
+        var e = empleados.findById(objetivo.getEmpleadoId()).orElseThrow(() -> new RecursoNoEncontradoException("Empleado no encontrado"));
+        contexto.validarLocal(e.getLocalId());
     }
 
     private Usuario obtener(Long id) {

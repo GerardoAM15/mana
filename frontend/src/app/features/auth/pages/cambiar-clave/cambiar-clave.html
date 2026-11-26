@@ -1,0 +1,38 @@
+<main class="fondo">
+  <section class="card acceso">
+    <p class="eyebrow">MANÁ</p>
+    <h2>Cambiar contraseña</h2>
+
+    @if (obligatorio) {
+      <div class="alerta aviso">
+        Su contraseña ya no cumple las reglas de seguridad. Cámbiela para continuar.
+      </div>
+    }
+    @if (error()) {
+      <div class="alerta">{{ error() }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="guardar()" class="formulario">
+      <label for="claveActual">Contraseña actual</label>
+      <input id="claveActual" type="password" class="input" formControlName="claveActual" autocomplete="current-password" />
+      @if (form.controls.claveActual.touched && form.controls.claveActual.invalid) {
+        <small class="error">Ingrese su contraseña actual.</small>
+      }
+
+      <label for="nuevaClave">Nueva contraseña</label>
+      <input id="nuevaClave" type="password" class="input" formControlName="nuevaClave" autocomplete="new-password" />
+      <app-medidor-clave [clave]="nuevaClave()" [datos]="datos()" />
+
+      <label for="confirmacion">Repita la nueva contraseña</label>
+      <input id="confirmacion" type="password" class="input" formControlName="confirmacion" autocomplete="new-password" />
+      @if (form.controls.confirmacion.touched && form.hasError('distintas')) {
+        <small class="error">Las contraseñas no coinciden.</small>
+      }
+
+      <button type="submit" class="btn btn-primary ancho" [disabled]="enviando()">
+        {{ enviando() ? 'Guardando...' : 'Cambiar contraseña' }}
+      </button>
+      <button type="button" class="btn ancho" (click)="salir()">Cerrar sesión</button>
+    </form>
+  </section>
+</main>

@@ -1,6 +1,6 @@
 package pe.edu.upeu.mana.service;
 
-import java.time.LocalDate;
+import java.time.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,10 +26,13 @@ class MenuAtencionTest {
     @Mock DiaNoAtencionRepository cierres;
     @Mock ContextoLocalService contexto;
     @Mock MenuMapper mapper;
+    @Mock ReglaCobroRepository reglas;
+    @Mock ComponenteReglaRepository componentes;
+    final Clock clock = Clock.fixed(Instant.parse("2026-11-01T12:00:00Z"), ZoneId.of("America/Lima"));
     final LocalDate viernes=LocalDate.of(2026,11,6);
     private MenuServiceImpl preparar() {
         when(contexto.localId(null)).thenReturn(1L);
-        return new MenuServiceImpl(menus,relaciones,platos,servicios,contexto,mapper,new ValidadorAtencion(servicios,dias,cierres));
+        return new MenuServiceImpl(menus,relaciones,platos,servicios,contexto,mapper,new ValidadorAtencion(servicios,dias,cierres),reglas,componentes,mock(LocalRepository.class),clock);
     }
     @Test void noPermiteGuardarCenaEnViernes() {
         var service=preparar();when(servicios.findById("C")).thenReturn(Optional.of(new Servicio()));

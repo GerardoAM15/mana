@@ -12,6 +12,10 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class DetalleContratoResponseDTO {
 
+    public DetalleContratoResponseDTO(Long id,String servicio,Long racionesContratadas,Long saldoRaciones,BigDecimal precioRacionPactado,BigDecimal subtotal) {
+        this(id,servicio,racionesContratadas,saldoRaciones,precioRacionPactado,subtotal,null,java.util.List.of());
+    }
+
     private Long id;
 
     private String servicio;
@@ -23,4 +27,8 @@ public class DetalleContratoResponseDTO {
     private BigDecimal precioRacionPactado;
 
     private BigDecimal subtotal;
+
+    private Boolean disponibleHoy;
+
+    private java.util.List<CompensacionRacionResponseDTO> compensaciones = java.util.List.of();
 }

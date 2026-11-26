@@ -15,11 +15,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pe.edu.upeu.mana.security.JwtService;
+import pe.edu.upeu.mana.security.PoliticaClave;
 import pe.edu.upeu.mana.entity.*;
 import pe.edu.upeu.mana.exception.DatosInvalidosException;
 import pe.edu.upeu.mana.mapper.UsuarioMapper;
 import pe.edu.upeu.mana.repository.*;
 import pe.edu.upeu.mana.service.service.AuthService;
+import pe.edu.upeu.mana.dto.auth.CambiarClaveRequestDTO;
 import pe.edu.upeu.mana.dto.auth.LoginRequestDTO;
 import pe.edu.upeu.mana.dto.auth.LoginResponseDTO;
 import pe.edu.upeu.mana.dto.auth.RecuperarClaveRequestDTO;
@@ -91,7 +93,11 @@ public class AuthServiceImpl implements AuthService {
             if (!Boolean.TRUE.equals(l.getActivo()))
                 throw credenciales();
             intentos.loginExitoso(r.getCorreo(), ip);
-            return mapper.toResponse(u, e, l, jwt.generarToken(u), JwtService.EXPIRA_EN_SEGUNDOS);
+            var respuesta = mapper.toResponse(u, e, l, jwt.generarToken(u), JwtService.EXPIRA_EN_SEGUNDOS);
+            // Contraseñas creadas antes de la política: se pide cambiarlas antes de seguir.
+            if (!PoliticaClave.cumple(r.getClave(), u.getCorreo(), e.getDni(), e.getNombre(), e.getApellido()))
+                respuesta.setDebeCambiarClave(true);
+            return respuesta;
         } finally {
             log.debug("Fin AuthServiceImpl.login | duracionMs={}", (System.nanoTime() - inicioOperacion) / 1_000_000);
         }
@@ -183,11 +189,39 @@ public class AuthServiceImpl implements AuthService {
                 throw new DatosInvalidosException("Token inválido o vencido");
             if (!Boolean.TRUE.equals(u.getActivo()))
                 throw new DatosInvalidosException("Token inválido o vencido");
+            var e = empleados.findById(u.getEmpleadoId()).orElseThrow(this::credenciales);
+            PoliticaClave.validar(r.getNuevaClave(), u.getCorreo(), e.getDni(), e.getNombre(), e.getApellido());
             u.setClaveHash(encoder.encode(r.getNuevaClave()));
             u.setTokenVersion(u.getTokenVersion() + 1);
             t.setUsado(true);
         } finally {
             log.debug("Fin AuthServiceImpl.restablecer | duracionMs={}", (System.nanoTime() - inicioOperacion) / 1_000_000);
+        }
+    }
+
+    // Cambio de contraseña con sesión iniciada (también lo usa el cambio obligatorio de claves débiles).
+    // Invalida las demás sesiones y devuelve un token nuevo para que el usuario siga conectado.
+    @Transactional
+    public LoginResponseDTO cambiarClave(String correo, CambiarClaveRequestDTO r) {
+        long inicioOperacion = System.nanoTime();
+        log.debug("Inicio AuthServiceImpl.cambiarClave");
+        try {
+            var actual = usuarios.findByCorreoIgnoreCase(correo).orElseThrow(this::credenciales);
+            var u = usuarios.buscarParaActualizar(actual.getId()).orElseThrow(this::credenciales);
+            if (!encoder.matches(r.getClaveActual(), u.getClaveHash()))
+                throw new DatosInvalidosException("La contraseña actual no es correcta");
+            if (r.getClaveActual().equals(r.getNuevaClave()))
+                throw new DatosInvalidosException("La nueva contraseña debe ser distinta de la actual");
+            var e = empleados.findById(u.getEmpleadoId()).orElseThrow(this::credenciales);
+            PoliticaClave.validar(r.getNuevaClave(), u.getCorreo(), e.getDni(), e.getNombre(), e.getApellido());
+            u.setClaveHash(encoder.encode(r.getNuevaClave()));
+            u.setTokenVersion(u.getTokenVersion() + 1);
+            usuarios.flush();
+            var l = locales.findById(e.getLocalId()).orElseThrow(this::credenciales);
+            log.info("Contraseña cambiada | usuario={}", u.getCorreo());
+            return mapper.toResponse(u, e, l, jwt.generarToken(u), JwtService.EXPIRA_EN_SEGUNDOS);
+        } finally {
+            log.debug("Fin AuthServiceImpl.cambiarClave | duracionMs={}", (System.nanoTime() - inicioOperacion) / 1_000_000);
         }
     }
 

@@ -18,9 +18,25 @@ cada commit tiene como autor al responsable del módulo y como coautores al rest
 
 Los casos de uso siguen la numeración de la Matriz de Requerimientos v8.
 
+## Correcciones de menú y planes
+
+- Ejecutar [mana-v8-compensaciones-racion.sql](docs/mana-v8-compensaciones-racion.sql) antes de iniciar esta versión, tanto sobre una base existente como en una instalación nueva. Es idempotente y solo crea la tabla de recuperaciones; no cambia contratos existentes ni compensa retrospectivamente cierres anteriores a la actualización.
+- Publicar exige al menos una alternativa activa de cada categoría obligatoria. Un plato de una programación pendiente no puede desactivarse ni cambiar de categoría hasta reemplazarlo. Los nombres del historial mantienen su comportamiento anterior.
+- `PUT /menus` recibe `version` (la devuelta por GET; `-1` para celda vacía). Clonar recibe `versionesDestino` por servicio y copiar a cena recibe `version`. Una versión desactualizada responde 409 y conserva el último guardado.
+- Los cierres se crean, trasladan y eliminan solo desde mañana, usando la fecha del servidor. Cada ración afectada de un contrato existente obtiene una fecha de recuperación por servicio después de su periodo ordinario: se saltan días sin atención, cierres, fechas ya reservadas y periodos de renovaciones ya cobradas. No se amplía el resto de los servicios, no se aumenta saldo ni se modifica el precio.
+- Si se contrata una renovación después de asignar recuperaciones, sus fechas reservadas se excluyen del cálculo y del cobro de esa renovación. Si la renovación ya estaba cobrada, la recuperación se asigna después, en la primera fecha libre del servicio, sin quitarle días pagados.
+- Las fechas se consultan en cada servicio de `GET /contratos/{id}` y en mostrador. El contrato conserva su vencimiento original; fuera de él solo puede consumir el servicio en su fecha de recuperación. El límite de un consumo diario por cliente y servicio también se mantiene entre contratos y locales. Una ausencia en esa fecha no genera una nueva compensación; anular un consumo de hoy devuelve la oportunidad de hoy.
+- Eliminar un cierre futuro retira sus recuperaciones. Moverlo recalcula las afectadas; cambiar solo su motivo no las duplica. Un cierre nuevo sobre una recuperación mueve esa misma oportunidad a otra fecha atendible, sin añadir raciones.
+- Pruebas Oracle de estas reglas: `MANA_ORACLE_TEST=true` y `mvnw.cmd -Dtest=ReglasProgramacionOracleTest,JyonOracleIntegrationTest,PensionesOracleIntegrationTest test`. Cada prueba revierte sus datos y aísla `ContratoScheduler` para que el reloj de prueba no ejecute vencimientos sobre contratos existentes.
+
+- Para una base existente, ejecutar [migracion-v7-platos-unicos.sql](docs/migracion-v7-platos-unicos.sql) como dueño del esquema, con el backend detenido y respaldo previo de las cinco tablas indicadas en el script. Unifica platos con el mismo nombre normalizado y categoría, conserva referencias y cantidades, e instala un trigger y un índice único. En una instalación nueva, `mana-hibrido-v4.sql` ya incluye esa protección.
+- Antes de programar un turno debe existir un menú público activo con su composición. Se admiten varias alternativas de cada categoría; no se admiten platos de categorías ajenas al turno.
+- En cena no se permiten precios sueltos activos. Un precio antiguo de cena puede desactivarse, pero no reactivarse.
+- Las integraciones de los seis casos de uso de Jyon se ejecutan con `MANA_ORACLE_TEST=true` y `./mvnw -Dtest=JyonOracleIntegrationTest test` (en PowerShell: `.\mvnw.cmd '-Dtest=JyonOracleIntegrationTest' test`). Requieren el esquema y las migraciones v7 y v8; cada prueba termina en rollback.
+
 ## Ejecutar
 
-La raíz Maven es esta carpeta, `mana_backend/`, dentro del directorio abierto en IntelliJ. El esquema debe existir previamente y corresponder a [docs/mana-hibrido-v4.sql](docs/mana-hibrido-v4.sql) más [docs/mana-v5-comprobantes.sql](docs/mana-v5-comprobantes.sql), [docs/mana-v6-comprobante-correo.sql](docs/mana-v6-comprobante-correo.sql) y [docs/mana-v7-auditoria.sql](docs/mana-v7-auditoria.sql). La aplicación **solo valida** el esquema: no ejecuta ese script, ALTER, migraciones ni DDL. Flyway está deshabilitado y no tiene dependencia.
+La raíz Maven es esta carpeta, `backend/`, dentro del directorio abierto en IntelliJ. El esquema debe existir previamente y corresponder a [docs/mana-hibrido-v4.sql](docs/mana-hibrido-v4.sql) más [docs/mana-v5-comprobantes.sql](docs/mana-v5-comprobantes.sql), [docs/mana-v6-comprobante-correo.sql](docs/mana-v6-comprobante-correo.sql), [docs/mana-v7-auditoria.sql](docs/mana-v7-auditoria.sql) y [docs/mana-v8-compensaciones-racion.sql](docs/mana-v8-compensaciones-racion.sql). La aplicación **solo valida** el esquema: no ejecuta ese script, ALTER, migraciones ni DDL. Flyway está deshabilitado y no tiene dependencia.
 
 ```powershell
 # Desde esta carpeta, con JDK 21 configurado

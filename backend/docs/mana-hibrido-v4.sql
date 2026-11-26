@@ -826,6 +826,15 @@ create table gastos_diarios (
 -- 10. Índices sobre FK y columnas de búsqueda
 --     (Oracle no indexa las FK automáticamente; las PK y UNIQUE sí.)
 -- ---------------------------------------------------------------------
+create unique index uq_platos_nombre_categoria on platos (categoria, upper(trim(nombre)));
+
+create or replace trigger tr_platos_normalizar_nombre
+before insert or update of nombre on platos for each row
+begin
+    :new.nombre := trim(regexp_replace(:new.nombre, '[[:space:]]+', ' '));
+end;
+/
+
 create index ix_empleados_local          on empleados (local_id);
 create index ix_usuarios_rol             on usuarios (rol);
 create index ix_tokens_usuario           on tokens_restablecimiento (usuario_id);

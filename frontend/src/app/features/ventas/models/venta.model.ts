@@ -98,4 +98,6 @@ export interface FiltroVentas {
   estado: EstadoVenta | null;
   cajaId: number | null;
   localId: number | null;
+  // true: solo pagadas y anuladas (pestaña "Historial").
+  historial?: boolean;
 }

@@ -17,6 +17,7 @@ export type NombreIcono =
   | 'usuarios'
   | 'locales'
   | 'comprobantes'
+  | 'auditoria'
   | 'flecha';
 
 // Íconos SVG de línea, monocromos (heredan currentColor) y del mismo tamaño.
