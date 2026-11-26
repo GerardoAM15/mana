@@ -61,9 +61,12 @@
       }
 
       <label class="observacion">
-        Observación (opcional)
+        {{ hayDescuadre() ? 'Justificación del descuadre (obligatoria)' : 'Observación (opcional)' }}
         <textarea class="input" rows="3" maxlength="250" formControlName="observacion"></textarea>
       </label>
+      @if (hayDescuadre() && form.controls.observacion.touched && !form.controls.observacion.value.trim()) {
+        <small class="error">Explique el motivo del descuadre para poder cerrar la caja.</small>
+      }
       @if (form.controls.observacion.invalid) {
         <small class="error">Máximo 250 caracteres.</small>
       }

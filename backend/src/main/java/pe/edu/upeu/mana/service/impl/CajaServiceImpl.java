@@ -148,6 +148,10 @@ public class CajaServiceImpl implements CajaService {
                 if (!saldos.containsKey(conteo.getMetodo()))
                     throw new DatosInvalidosException("Método de pago no registrado");
             }
+            boolean hayDescuadre = saldos.values().stream().anyMatch(s ->
+                    contados.getOrDefault(s.getMetodo(), CERO).compareTo(s.getEsperado()) != 0);
+            if (hayDescuadre && (r.getObservacion() == null || r.getObservacion().isBlank()))
+                throw new DatosInvalidosException("Debe justificar el descuadre antes de cerrar la caja");
             BigDecimal totalContado = CERO;
             for (var saldo : saldos.values()) {
                 // Omitir un método equivale a contar cero; se conserva cualquier movimiento, aunque su neto sea cero.

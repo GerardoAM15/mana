@@ -56,6 +56,7 @@ export class CajaCerrar implements OnInit {
   protected readonly totalEsperado = computed(() => sumar(this.filas().map(f => f.esperado)));
   protected readonly totalContado = computed(() => sumar(this.contados().map(v => v ?? 0)));
   protected readonly totalDiferencia = computed(() => redondear(this.totalContado() - this.totalEsperado()));
+  protected readonly hayDescuadre = computed(() => this.diferencias().some(diferencia => diferencia !== 0));
 
   constructor() {
     this.form.controls.conteos.valueChanges
@@ -86,6 +87,10 @@ export class CajaCerrar implements OnInit {
   pedirConfirmacion(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      return;
+    }
+    if (this.hayDescuadre() && !this.form.controls.observacion.value.trim()) {
+      this.form.controls.observacion.markAsTouched();
       return;
     }
     this.confirmando.set(true);
