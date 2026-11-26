@@ -38,7 +38,7 @@ export class ContratoList implements OnInit {
     this.buscar(0);
   }
 
-  buscar(pagina = 0): void {
+  buscar(pagina = 0, tamanio = this.resultado()?.tamanio ?? TAMANIO): void {
     const valores = this.filtros.getRawValue();
     const filtro: FiltroContratos = {
       dni: valores.dni.trim() || null,
@@ -50,7 +50,7 @@ export class ContratoList implements OnInit {
 
     this.cargando.set(true);
     this.error.set(null);
-    this.contratoService.buscar(filtro, pagina, TAMANIO).subscribe({
+    this.contratoService.buscar(filtro, pagina, tamanio).subscribe({
       next: resultado => {
         this.resultado.set(resultado);
         this.cargando.set(false);

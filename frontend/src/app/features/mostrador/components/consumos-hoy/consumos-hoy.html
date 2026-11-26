@@ -45,7 +45,7 @@
         }
       </tbody>
     </table>
-    <app-paginador [pagina]="r" [deshabilitado]="cargando()" (cambiar)="cargar($event)" />
+    <app-paginador [pagina]="r" [deshabilitado]="cargando()" (cambiar)="cargar($event)" (cambiarTamanio)="cargar(0, $event)" />
   }
 </section>
 

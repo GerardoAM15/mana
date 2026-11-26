@@ -50,7 +50,7 @@ export class CajaList implements OnInit {
     this.buscar(0);
   }
 
-  buscar(pagina = 0): void {
+  buscar(pagina = 0, tamanio = this.resultado()?.tamanio ?? TAMANIO): void {
     const valores = this.filtros.getRawValue();
     const filtro: FiltroCajas = {
       desde: valores.desde || null,
@@ -61,7 +61,7 @@ export class CajaList implements OnInit {
 
     this.cargando.set(true);
     this.error.set(null);
-    this.cajaService.buscar(filtro, pagina, TAMANIO).subscribe({
+    this.cajaService.buscar(filtro, pagina, tamanio).subscribe({
       next: resultado => {
         this.resultado.set(resultado);
         this.cargando.set(false);

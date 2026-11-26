@@ -42,11 +42,11 @@ export class ConsumosHoy implements OnInit {
     this.cargar(0);
   }
 
-  cargar(pagina = this.resultado()?.pagina ?? 0): void {
+  cargar(pagina = this.resultado()?.pagina ?? 0, tamanio = this.resultado()?.tamanio ?? TAMANIO): void {
     const fecha = hoy();
     this.cargando.set(true);
     this.consumoService
-      .buscar({ contratoId: null, servicio: null, desde: fecha, hasta: fecha, localId: null }, pagina, TAMANIO)
+      .buscar({ contratoId: null, servicio: null, desde: fecha, hasta: fecha, localId: null }, pagina, tamanio)
       .subscribe({
         next: resultado => {
           this.resultado.set(resultado);

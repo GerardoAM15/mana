@@ -3,6 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, inject, input, OnInit, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { PaginaResponse } from '../../../../core/models/pagina-response';
 import { CatalogoService } from '../../../../core/services/catalogo-service';
 import { hoy } from '../../../../core/utils/fechas';
@@ -49,10 +50,15 @@ export class VentaList implements OnInit {
   });
 
   private pagina = 0;
+  private tamanio = TAMANIO;
+  private consulta?: Subscription;
   private readonly temporizador = setInterval(() => this.refrescarEnCurso(), REFRESCO_MS);
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => clearInterval(this.temporizador));
+    inject(DestroyRef).onDestroy(() => {
+      clearInterval(this.temporizador);
+      this.consulta?.unsubscribe();
+    });
   }
 
   ngOnInit(): void {
@@ -75,12 +81,18 @@ export class VentaList implements OnInit {
     this.buscar(0);
   }
 
-  buscar(pagina = 0, silencioso = false): void {
+  cambiarTamanio(tamanio: number): void {
+    this.buscar(0, false, tamanio);
+  }
+
+  buscar(pagina = 0, silencioso = false, tamanio = this.tamanio): void {
+    this.consulta?.unsubscribe();
     this.pagina = pagina;
     if (!silencioso) this.cargando.set(true);
     this.error.set(null);
-    this.ventaService.buscar(this.filtro(), pagina, TAMANIO).subscribe({
+    this.consulta = this.ventaService.buscar(this.filtro(), pagina, tamanio).subscribe({
       next: resultado => {
+        this.tamanio = resultado.tamanio;
         this.resultado.set(resultado);
         this.cargando.set(false);
         this.actualizadoEn.set(new Date());
